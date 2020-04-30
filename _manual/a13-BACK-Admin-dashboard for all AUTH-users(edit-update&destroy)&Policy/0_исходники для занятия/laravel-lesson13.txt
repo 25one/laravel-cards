@@ -1,0 +1,246 @@
+----13-BACK-Admin-dashboard for all AUTH-users
+
+dashboard for all users (!!!ONLY users - AUTH) - !!!BUT FIRS ONLY SHOW, NOT UPDATE AND DELETE + !!!NOT CREATE NEW
+
+---
+«Front»-ВОПРОСЫ+РОУТ (ОТОБРАЖЕНИЕ)
+
+resourses\views\front\navbar.blade.php
+
+Remove @admin
+
+                       <div class="dropdown-menu dropdown-menu-right size" aria-labelledby="navbarDropdown">
+                          @auth
+                              <a class="dropdown-item" href="{{ route('dashboard') }}">Dashboard</a>
+                          @endauth
+                           <a class="dropdown-item" href="{{ route('logout') }}"
+                              onclick="event.preventDefault();
+                                            document.getElementById('logout-form').submit();">
+                               {{ __('Logout') }}
+                           </a>
+
+...МАЛО - http://laravel-cards/
+
+routes\web.php
+
+/*
+|--------------------------------------------------------------------------
+| Backend
+|--------------------------------------------------------------------------|
+*/
+Route::prefix('')->namespace('Back')->group(function () {
+
+   //Route::middleware('admin')->group(function () {
+   Route::middleware('auth')->group(function () {
+      Route::name('dashboard')->get('/dashboard', 'AdminController@index');
+      //Route::name('dashboard')->get('/dashboard', 'AdminController@index')->middleware('admin');
+      Route::resource('cards', 'AdminController');
+   });
+
+});
+
+...НО, СЕЙЧАС ОН МОЖЕТ
+
+1.ДЕЛАТЬ ВСЕ НА dashboard - НУЖНО ТОЛЬКО show
+
+---FRONT-ВОПРОСЫ
+
+resourses\views\back\brick-standard.blade.php
+@admin
+<td class="center widthbutton"><a class="btn btn-danger listbuttonremove" href="{{ route('cards.destroy', [$card->id]) }}"><i class="fa fa-trash-o" aria-hidden="true"></i></a></td>
+<td class="col-md-6 col-sm-6 col-xs-6 center widthbutton"><a class="btn btn-primary listbuttonupdate" href="{{ route('cards.edit', [$card->id]) }}"><i class="fa fa-edit" aria-hidden="true"></i></a></td>
+@endadmin
+
++resourses\views\back\index.blade.php
+                      <table>
+                         <thead>
+                          <tr>
+                            @admin
+                            <td class="widthbutton">&nbsp;</td>
+                            <td class="widthbutton">&nbsp;</td>
+                            @endadmin
+                            <td>User Name</td>
+                            <td>Card Number</td>                            
+                            <td>Card Name</td>
+                            <td>Card Type</td>
+                          </tr>  
+                          </thead>
+
+
+… + НУЖНО НЕ ОТОБРАЖАТЬ Add new Card -  resourses\views\back\layout.blade.php
+
+                @admin
+                <li>
+                    <a href="{{ route('cards.create') }}">
+                        <i class="fa fa-folder-o"></i> <span>Add new Card</span>
+                    </a>
+                </li>
+                @endadmin
+
+...НО ЭТОГО МАЛО... - 127.0.0.1:8080/laravel-cards/cards/create - ...ЧЕГО БЫТЬ НЕ ДОЛЖНО
+
+--- «Back»-ВОПРОСЫ (ПРАВА НА ДЕЙСТВИЯ)
+
+Контроллер ресурсов RESTful
+Verb    Path                        Action  Route Name
+GET     /cards                      index   cards.index
+GET     /cards/create               create  cards.create
+POST    /cards                      store   cards.store
+GET     /cards/{card}               show    cards.show 
+GET     /cards/{card}/edit          edit    cards.edit
+PUT     /cards/{card}               update  cards.update
+PUT     /comments/{comment}         update  comments.update
+DELETE  /cards/{card}               destroy cards.destroy
+
+app/Http/Controllers/AdminController.php
+
+    public function __construct(AdminRepository $repository)
+    {
+        //$this->middleware('auth');
+        $this->middleware('admin')->only('create', 'store', 'edit', 'update', 'destroy');
+        $this->repository = $adminrepository;
+        $this->namespace = 'back';
+    }
+
+...cards/create — ВЫБРАСЫВАЕТ НА home
+
+...ИЛИ
+
+Route::resource('cards', 'AdminController')->middleware('admin');
+
+--- «Back»-ЕЩЕ ВОПРОСЫ (ВИДИМ ТОЛЬКО СВОЕ)
+
+app/Http/Repositories/AdminRepository.php
+
+    public function getData($request, $parameters) //$parameters['order'], $parameters['direction']
+    {
+        $query = $this->model
+           ->select('id', 'user_id', 'card_id', 'number')
+           //->where($parameters['wherewho'], 'like', '%' . $parameters['wherewhat'] . '%')
+           ->orderBy($parameters['order'], $parameters['direction']); 
+
+        if(auth() && auth()->user()->role != 'admin') $query->where('user_id', auth()->user()->id);
+        //if(\Auth() && \Auth()->user()->role != 'admin') $query->where('user_id', \Auth()->user()->id);   
+
+        return $query->get();   
+    }
+
+(ПРИ СМЕНЕ auth()-> - \Auth:: - ПЕРЕЛОГИНИТЬСЯ)
+
+--- edit-update&destroy for all users
+
+resources\views\back\brick-standard.blade.php
+
+@auth
+<td class="center widthbutton"><a class="btn btn-danger listbuttonremove" href="{{ route('cards.destroy' , [$joined->id]) }}"><i class="fa fa-trash-o" aria-hidden="true"></i></a></td>
+<td class="col-md-6 col-sm-6 col-xs-6 center widthbutton"><a class="btn btn-primary listbuttonupdate" href="{{ route('cards.edit', [$joined->id]) }}"><i class="fa fa-edit" aria-hidden="true"></i></a></td>
+@endauth
+
+
+resources\views\back\index.blade.php
+
+                            @auth
+                            <td class="widthbutton">&nbsp;</td>
+                            <td class="widthbutton">&nbsp;</td>
+                            @endauth
+
+...МАЛО, Т.К. В КОНТРОЛЛЕРЕ
+
+$this->middleware('admin')->only('create', 'store', 'edit', 'update', 'destroy');
+
+...Т.Е., ДЕЛАЕМ
+
+    public function __construct(AdminRepository $repository)
+    {
+        //$this->middleware('auth');
+        //$this->middleware('admin')->only('create', 'store', 'edit', 'update', 'destroy');
+        $this->middleware('admin')->only('create', 'store');
+        $this->repository = $repository;
+        $this->namespace = 'back';
+    }
+
+--- Policy
+
+...НО СЕЙЧАС ЕСТЬ ВОЗМОЖНОСТЬ, НАПРИМЕР, ДЛЯ serg ПОЛУЧИТЬ ДОСТУП К КАРТЕ helen (http://127.0.0.1:8080/laravel-cards/cards/3/edit)
+
+app/Policies/JoinedPolicy.php (just copy)
+
+<?php
+
+namespace App\Policies;
+
+use App\Models\ {User, Joined};
+
+class JoinedPolicy extends Policy
+{
+    /**
+     * Determine whether the user can manage the comment.
+     *
+     * @param \App\Models\User $user
+     * @param \App\Models\Joined $card
+     * @return mixed
+     */
+    public function manage(User $user, Joined $card)
+    {
+        return $user->id === $card->user_id;
+    }
+}
+
++ Policy.php (just copy) (СТАНДАРТНО - ВСЕ ЭТО НЕ КАСАЕТСЯ admin-А)
+
+<?php
+
+namespace App\Policies;
+
+use App\Models\User;
+use Illuminate\Auth\Access\HandlesAuthorization;
+
+class Policy
+{
+    use HandlesAuthorization;
+
+    /**
+     * Grant all abilities to administrator.
+     *
+     * @param  \App\Models\User  $user
+     * @return bool
+     */
+    public function before(User $user)
+    {
+        if ($user->role === 'admin') {
+            return true;
+        }
+    }
+}
+
++
+
+app\Providers\AuthServiceProvider.php
+
+...
+use App\Models\Joined;
+use App\Policies\JoinedPolicy;
+
+    protected $policies = [
+        Joined::class => JoinedPolicy::class,
+    ];
+
+...ТОГДА В КОНТРОЛЛЕРЕ МОЖНО
+
+    /**
+     * Show the form for editing the specified resource.
+     *
+     * @param  \App\Models\Joined $card
+     * @return \Illuminate\Http\Response
+     */
+    public function edit(Joined $card)
+    {
+
+       $this->authorize('manage', $card);
+
+       return view('back.cards.edit', compact('card'));
+    }
+
++ ДЛЯ update, destroy
+
+$this->authorize('manage', $card);

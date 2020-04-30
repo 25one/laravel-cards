@@ -1,0 +1,182 @@
+----5-FRONT-Selected-AJAX&config-parameters
+
+Select-type of Card (js-ajax)
+
+resources\views\front\index.blade.php
+            <select class="form-control input-size" style="height: auto;" name="type_id" id="type_id">
+                <option value="0" class="input-size" 
+                   >-----</option> 
+
+@section('js')
+    <script src="{{ asset('public/js/mine.js') }}"></script>
+    <script>
+       var url = "{{ route('home') }}";
+       var errorAjax = '@lang('Looks like there is a server issue...')';
+       $(document).ready(function(){
+          $('#type_id').change(function(){
+             BaseRecord.typeSelect($(this).val(), url, errorAjax);
+          });  
+       });
+    </script>
+@endsection    
+---
+layout.blade.php
+(…
+@yield('js')
+
+</body>
+</html>)
+
+public\js\mine.js
+
+typeSelect: function(type_id, url, errorAjax){
+   var ajaxSetting={
+      method: 'get',
+      url: url, //Route::name('home')->get('/', 'Front\CardController@index');
+      data: {
+         type: type_id, //if($request->type)... in CardRepository.php
+      },
+      success: function(data){
+         $('#pannel').html(data.table); //<div id="pannel"> in front\index.blade.php
+      },
+      error: function(data){
+         swal({
+            title: errorAjax, //for example 'nam' (error) in ->select('id', 'type_id', 'nam', 'title'); in query of CardRepository.php
+            type: 'warning'
+         })
+      },
+   };
+   $.ajax(ajaxSetting);
+},
+
+
+app\Http\Controllers\CardController.php
+
+use Indexable;
+
+...
+
+
+app\Http\Controllers\Traits\Indexable.php
+
+    public function index(Request $request)
+    {
+        //CardController, ...
+        $cards = $this->repository->getData($request);
+
+        if ($request->ajax()) {
+            return response()->json([
+                'table' => view($this->namespace . ".brick-standard", ['cards' => $cards])->render(),
+            ]);
+        }   
+
+        return view($this->namespace . '.index', compact('cards'));
+    }
+
+-----------------------------------------
+
+config-parameters → Traits
+
+config\parametrs.php
+
+<?php
+
+return [
+
+    'front' => [
+        'order' => 'type_id',
+        'direction' => 'asc',
+        'type' => [1,2,3], //mine.js data: {type: type_id,} 
+    ],
+    'back' => [
+        'order' => 'user_id',
+        'direction' => 'asc',
+    ],
+
+];
+
+!!!php artisan config:cache – ПРИ КАЖДОЙ СМЕНЕ
+
+app\Http\Controllers\Traits\Indexable.php
+
+trait Indexable
+{
+    /**
+     * The Repository instance.
+     *
+     * @var \App\Repositories\CardRepository
+     * @var ...     
+     */
+    protected $repository; //...
+
+    /**
+     * The namespace
+     *
+     * @var string
+     */
+    protected $namespace; //...
+
+    /**
+     * Display a listing of the records.
+     *
+     * @param  \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\Response
+     */
+    public function index(Request $request)
+    {
+        //CardController, ...
+        $cards = $this->repository->getData($request, $this->getParameters($request));
+
+        if ($request->ajax()) {
+            return response()->json([
+                'table' => view($this->namespace . ".brick-standard", ['cards' => $cards])->render(),
+            ]);
+        }   
+
+        return view($this->namespace . '.index', compact('cards'));
+    }
+
+    /**
+     * Get parameters.
+     *
+     * @param  \Illuminate\Http\Request $request
+     * @return array
+     */
+    protected function getParameters($request)
+    {
+        // Default parameters
+        $parameters = config("parameters.".$this->namespace); //$parameters['order'], $parameters['direction'], $parameters['type'] 
+
+        // Build parameters with request
+        foreach ($parameters as $parameter => &$value) {
+            if (isset($request->$parameter)) { //if $request->type
+                $value = $request->$parameter; 
+            }
+        }
+
+        return $parameters; 
+    }    
+
+app\Repositories\CardRepository.php
+
+    public function getData($request, $parameters)
+    {
+        $query = $this->model_card
+            ->select('id', 'type_id', 'name', 'title')
+            //->orderBy('type_id', 'desc');
+            ->orderBy($parameters['order'], $parameters['direction'])
+            ->whereIn('type_id', $parameters['type']); //!whereIn - array
+            //if($request->type) $query = $query->where('type_id', $request->type); //where('type_id', '=', $request->type) 
+        
+        return $query;      
+    }
+
++ mine.js
+
+   if(type_id==0) type_id=[1,2,3]; else type_id=[type_id]; //for ---
+   var ajaxSetting={
+      method: 'get',
+      url: url,
+      data: {
+         type: type_id, //or [1], or [2], or [3], or [1,2,3] (for start(config-parameters) + ---)
+      },

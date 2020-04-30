@@ -1,0 +1,221 @@
+-----3-FRONT-SHOW cards-migrations&Models&Repositories&views(print_r)
+
+1.migrations — types, cards.
+
+database\migrations
+
+2019_02_01_082606_types.php (id, name)
+2019_02_02_082606_cards.php (id, type_id, name, title)
+
+php artisan migrate
+
+
+2.Type, Cards-Models
+
+---
+...НО СНАЧАЛА - СОЗДАНИЕ ОТДЕЛЬНОЙ ПАПКИ ДЛЯ МОДЕЛЕЙ + ПЕРЕМЕЩЕНИЕ ТУДА МОДЕЛИ User 
+СОЗДАДИМ app/Models И ПЕРЕМЕСТИМ ТУДА МОДЕЛЬ User.php, ПОМЕНЯВ ПРИ ЭТОМ:
+-САМА МОДЕЛЬ User.php - namespace App\Models; 
+-config/auth.php 
+   'providers' => [
+        'users' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\User::class,
+        ],
+
+-app\Http\Controllers\Auth\RegisterController.php
+use App\Models\User;
+
+composer dump-autoload
+php artisan config:cache
+sudo chmod -R 777 storage
+---
+
+Type-Model
+
+app\Models\Type.php
+
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Type extends Model {
+
+public $timestamps = false;
+
+protected $fillable = [
+         'name'
+    ];
+
+}
+
+Card-Model
+
+app\Models\Card.php
+
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Card extends Model {
+
+    public $timestamps = false;
+
+    protected $fillable = [
+         'type_id', 'name', 'title'
+    ];
+
+    /**
+     * One to One relation
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\belongsTo
+     */
+    public function type()
+    {
+        return $this->belongsTo(Type::class);
+    }
+
+}
+
+app\Repositories\CardRepository.php (copy from ProductRepository.php and change)
+
+<?php
+
+namespace App\Repositories;
+
+use App\Models\ {
+    Card
+};
+
+class CardRepository
+{
+    /**
+     * The Model instance.
+     *
+     * @var \Illuminate\Database\Eloquent\Model
+     */
+    protected $model;
+
+
+    /**
+     * Create a new CardRepository instance.
+     *
+     * @param  \App\Models\Card $card
+     */
+    public function __construct(Card $card)
+    {
+        $this->model = $card;
+    }
+
+    //...
+
+}
+
+app\Http\CardController.php
+
+<?php
+
+namespace App\Http\Controllers\Front;
+
+use Illuminate\Http\Request;
+use App\ {
+    Http\Controllers\Controller,
+    Repositories\CardRepository
+
+};
+
+class CardController extends Controller
+{
+    /**
+     * Create a new controller instance.
+     *
+     * @return void
+     */
+    public function __construct()
+    {
+        //$this->middleware('auth');
+    }
+
+    /**
+     * Display a listing of the types of cards.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function index(Request $request, CardRepository $repository)
+    {
+        $cards = $repository->getData($request);
+
+        return view('front.index', compact('cards'));
+    }
+}
+
+
+app\Repositories\CardRepository.php
+
+<?php
+
+namespace App\Repositories;
+
+use App\Models\ {
+    Card
+};
+
+class CardRepository
+{
+    /**
+     * The Model instance.
+     *
+     * @var \Illuminate\Database\Eloquent\Model
+     */
+    protected $model;
+
+
+    /**
+     * Create a new CardRepository instance.
+     *
+     * @param  \App\Models\Card $card
+     */
+    public function __construct(Card $card)
+    {
+        $this->model = $card;
+    }
+
+    /**
+     * Get types collection
+     *
+     * @return Illuminate\Database\Eloquent\Collection Object
+     */
+    public function getData($request)
+    {
+        $query = $this->model
+            ->select('id', 'type_id', 'name', 'title')
+            ->orderBy('type_id', 'desc');
+
+        if($request->type) $query->where('type_id', $request->type); 
+
+        return $query->get();      
+    }
+
+}
+
+resources/views/front/index.blade.php
+
+@section('main')
+
+@php
+print_r($cards); 
+@endphp
+
+@endsection
+
+--- homework - НЕВОЗМОЖНОСТЬ ИСПОЛЬЗОВАНИЯ fillable&create
+
+        //Cart::create($request->all());
+        $this->model_cart->user_id = 1;
+        $this->model_cart->name = $request->name;
+        ...
+

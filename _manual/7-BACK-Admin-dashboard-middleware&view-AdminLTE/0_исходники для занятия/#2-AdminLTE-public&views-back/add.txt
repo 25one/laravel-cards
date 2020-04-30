@@ -1,0 +1,42 @@
+РАЗДЕЛЯЕМ index - layout (@yield('main'))
+
+--------------------------------------------------
+
+УЖЕ ЕСТЬ
+{{ asset('public/AdminLTE/css/bootstrap.min.css') }}
+
+--------------------------------------------------
+
+        <!-- CSRF Token -->
+        <meta name="csrf-token" content="{{ csrf_token() }}">
+
+--------------------------------------------------
+
+@yield('css') (@yield('main'), @yield('js'))
+
+--------------------------------------------------
+
+{{ Auth::user()->name }}
+
+                                      <form id="logout-form" action="{{ url('/logout') }}" method="POST" style="display: none;">
+                                        {{ csrf_field() }}
+                                      </form>
+
+--------------------------------------------------
+
+{{ url('/') }} ({{ url('/dashboard') }}, #)
+
+--------------------------------------------------
+
+index.blade.php (@extends('back.layout'), @section('css'), @section('main'), @section('js'))
+
+                    <div class="table-responsive"> <!-- Start -->
+                      @if (session('card-updated'))
+                          @component('back.components.alert')
+                              @slot('type')
+                                  success
+                              @endslot
+                              {!! session('card-updated') !!}
+                          @endcomponent
+                      @endif
+                    ... 

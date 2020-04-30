@@ -1,0 +1,57 @@
+3.Связать таблицы carts и users (свои товары в таблице корзины для каждого из user).
+
+1.Добавить пользователя admin (id=1) (если не добавлен ранее), для чего изменить routes\web.php:
+раскомментировать+изменить name
+Route::get('/home', 'HomeController@index')->name('homelogin');
+
+laravel-shop/register - зарегистрировать admin + logout
+
+2.Изменить структуру таблицы carts, добавив в миграцию поле user_id:
+        Schema::create('carts', function (Blueprint $table) {
+            $table->increments('id');
+            $table->integer('user_id')->unsigned()->index(); //!!!             
+            $table->string('name');
+            $table->decimal('price', 10, 2);
+            $table->string('image');  
+        }); 
+
++ удалить в БД таблицу carts + запись о ней в таблице migrations
++ php artisan migrate
+
+3.Изменить модель Cart ($fillable, Relations\belongsTo):
+class Cart extends Model {
+
+    public $timestamps = false;
+
+    protected $fillable = [
+         'user_id', 'name', 'price', 'image' //!!!
+    ]; 
+
+    /**
+     * One to One relation
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\belongsTo
+     */
+    public function user() //!!!
+    {
+        return $this->belongsTo(User::class);
+    }        
+
+4.Изменить ShopRepository, добавив в store для carts запись в поле user_id (пока для всех 1):
+    /**
+     * Store to cart.
+     *
+     * @return \Illuminate\Contracts\Support\Renderable
+     */
+    public function tocart($request)
+    {
+        //$this->model_cart->create($request->all());  
+        //Cart::create($request->all());
+        $this->model_cart->user_id = 1;
+        $this->model_cart->name = $request->name;
+        $this->model_cart->price = $request->price;
+        $this->model_cart->image = $request->image;    
+        $this->model_cart->save();                    
+    }    
+
+После данных изменений при добавке товара в корзину в таблице carts в поле user_id должна записываться 1.

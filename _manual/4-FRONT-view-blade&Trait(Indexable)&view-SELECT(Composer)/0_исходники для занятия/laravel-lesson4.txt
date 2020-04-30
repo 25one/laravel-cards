@@ -1,0 +1,235 @@
+----4-FRONT-view-blade&Trait(Indexable)&view-SELECT(Composer)
+
+---
+view-blade
+
+resources\views\front\index.blade.php (add)
+
+@section('main')
+
+@php 
+//print_r($cards); 
+@endphp
+
+<div class="row margin">
+    <div class="col-md-3 col-sm-4 col-xs-12">
+        <div class="form-group">
+            <label for="type" class="size">Select type of card</label>
+            <select class="form-control input-size" style="height: auto;" name="type_id" id="type_id">
+                <option value="0" class="input-size" 
+                   >-----</option> 
+                              
+            </select>
+        </div>
+    </div>
+</div>   
+
+<!-- brick-wrapper -->
+<div class="bricks-wrapper">
+
+    <div id="pannel">
+       @include('front.brick-standard')
+    </div>   
+
+</div>
+
+@endsection
+
+resources\views\front\brick-standard.blade.php (create from this and add foreach + {{ $card->...)
+
+<article class="brick entry format-standard animate-this margin-top">
+
+    <div class="entry-text">
+        <div class="entry-header">
+            <h5 class="entry-title"><a href="#">...(name)...</a> <span class="red">(...(type-name)...)</span></h5>
+        </div>
+        <div class="entry-excerpt">
+            ...(title)...
+        </div>
+    </div>
+
+</article>
+
+---
+Trait-Indexable
+
+app\Http\Controllers\Traits\Indexable.php (copy-paste)
+
+<?php
+
+namespace App\Http\Controllers\Traits;
+
+use Illuminate\Http\Request;
+
+trait Indexable
+{
+    /**
+     * The Repository instance.
+     *
+     * @var \App\Repositories\CardRepository
+     * @var ...     
+     */
+    protected $repository; //...
+
+    /**
+     * The namespace
+     *
+     * @var string
+     */
+    protected $namespace; //...
+
+    /**
+     * Display a listing of the records.
+     *
+     * @param  \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\Response
+     */
+    public function index(Request $request)
+    {
+        //CardController, ...
+        $cards = $this->repository->getData($request);
+
+        return view($this->namespace . '.index', compact('cards'));
+    }
+
+}
+
+app\Controllers\Front\CardController.php
+
+use App\ {
+    Http\Controllers\Controller,
+    Repositories\CardRepository,
+    Http\Controllers\Traits\Indexable
+
+};
+
+class CardController extends Controller
+{
+    use Indexable;
+    /**
+     * Create a new controller instance.
+     *
+     * @return void
+     */
+    public function __construct(CardRepository $cardrepository)
+    {
+        //$this->middleware('auth');
+        $this->repository = $cardrepository;
+        $this->namespace = 'front';
+    }
+
+    /**
+     * Show the application dashboard.
+     *
+     * @return \Illuminate\Contracts\Support\Renderable
+     */
+    /*
+    public function index(Request $request, CardRepository $repository)
+    {
+        $cards = $repository->getData($request);
+
+        return view('front.index', compact('cards'));
+    }
+    */
+
+
+app\Controllers\Back\AdminController.php (from CardController.php and change)
+
+<?php
+
+namespace App\Http\Controllers\Back;
+
+use Illuminate\Http\Request;
+use App\ {
+    Http\Controllers\Controller,  
+    Repositories\AdminRepository,
+    Http\Controllers\Traits\Indexable
+
+};
+
+class AdminController extends Controller
+{
+    use Indexable;
+
+    /**
+     * Create a new controller instance.
+     *
+     * @return void
+     */
+    public function __construct(AdminRepository $adminrepository)
+    {
+        //$this->middleware('auth');
+        $this->repository = $adminrepository;
+        $this->namespace = 'back';
+    }
+
+}
+
+
+---
+Create SELECT(Composer)
+
+app\Http\ViewComposers\TypeComposer.php (just copy-paste)
+
+<?php
+
+namespace App\Http\ViewComposers;
+
+use Illuminate\View\View;
+use App\Models\Type;
+
+class TypeComposer
+{
+    /**
+     * Bind data to the view.
+     *
+     * @param  View  $view
+     * @return void
+     */
+    public function compose(View $view)
+    {
+        $view->with('types', Type::select('id', 'name')->get());
+    }
+}
+
+
+app\Providers\AppServiceProvider.php
+
+<?php
+
+namespace App\Providers;
+
+...
+use App\Http\ViewComposers\TypeComposer;
+
+class AppServiceProvider extends ServiceProvider
+{
+    /**
+     * Register any application services.
+     *
+     * @return void
+     */
+    public function register()
+    {
+        //
+    }
+
+    /**
+     * Bootstrap any application services.
+     *
+     * @return void
+     */
+    public function boot()
+    {
+        view()->composer('front/index', TypeComposer::class);
+    }
+}
+
+resources\views\front\index.blade.php
+
+                <option value="0" class="input-size" 
+                   >-----</option> 
+                @foreach($types as $key => $type)
+                   <option value="{{ $type->id }}">{{ $type->name }}</option>    
+                @endforeach           
+                

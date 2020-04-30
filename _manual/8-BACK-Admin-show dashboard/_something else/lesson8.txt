@@ -1,0 +1,216 @@
+----8-Admin-show dashboard
+
+---
+New Joined-Model (belongsTo - One to One !reverse relation + protected $fillable  + public $timestamps = false;)
+
+app\Models\Joined.php
+
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Joined extends Model {
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array
+     */
+
+    public $timestamps = false;
+
+    protected $fillable = [
+         'user_id', 'card_id', 'number'
+    ];
+
+    /**
+     * One to One !reverse relation
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\belongsTo
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * One to One !reverse relation
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\belongsTo
+     */
+    public function card()
+    {
+        return $this->belongsTo(Card::class);
+    }
+
+}
+
++ ВО ВСЕ (КРОМЕ User) МОДЕЛИ (Type, Card) - public $timestamps = false;
+
+---
+New migrations + seed
+
+DB laravel-cards — delete all tables
+
+2019_02_05_082606_create_foreign_keys.php
+
+...ДЛЯ КОРРЕКТНОСТИ ПОСТРОЕНИЯ ВНЕШНИХ КЛЮЧЕЙ:
++УБИРАЕМ insert ИЗ ВСЕХ МИГРАЦИЙ 
++ДОБАВЛЯЕМ ВСЕ insert(create) В seed
+
+php artisan migrate --seed
+
+---
+Dashboard — ВЫВОД СПИСКА КАРТ С ПРИВЯЗКОЙ ЮЗЕР-ТИП
+
+app\Repositories\AdminRepository.php
+
+<?php
+
+namespace App\Repositories;
+
+use App\Models\ {
+    Joined
+};
+
+class AdminRepository
+{
+    /**
+     * The Model instance.
+     *
+     * @var \Illuminate\Database\Eloquent\Model
+     */
+    protected $model;
+
+
+    /**
+     * Create a new AdminRepository instance.
+     *
+     * @param  \App\Models\Joined $joined
+     */
+    public function __construct(Joined $joined)
+    {
+        $this->model = $joined;
+    }
+    /**
+     * Get joineds collection
+     *
+     * @return Illuminate\Database\Eloquent\Collection Object
+     */
+    public function getData($parameters)
+    {
+        $query = $this->model
+            ->select('id', 'user_id', 'card_id', 'number')
+            ->orderBy($parameters['order'], $parameters['direction']);
+        
+        return $query;      
+    }    
+
+}
+
+---
+config\parameters.php
+...
+    'back' => [
+        'order' => 'user_id',
+        'direction' => 'asc',
+    ],
+
+
+resources\views\back\index.plade.php
+                          <tbody id="pannel">
+                             @include('back.brick-standard')
+                         </tbody>    
+
+brick-standard.blade.php
+
+@foreach($cards as $joined)
+<tr>
+@admin
+<td class="center widthbutton"><a class="btn btn-danger listbuttonremove" href="#"><i class="fa fa-trash-o" aria-hidden="true"></i></a></td>
+<td class="col-md-6 col-sm-6 col-xs-6 center widthbutton"><a class="btn btn-primary listbuttonupdate" href="#"><i class="fa fa-edit" aria-hidden="true"></i></a></td>
+@endadmin
+   <td>{{ $joined->user->name }}</td>
+   <td>{{ $joined->number }}</td>  
+   <td>{{ $joined->card->name }}</td>
+   <td>{{ $joined->card->type->name }}</td>
+</tr>
+@endforeach
+
+!!!ЧТО ВОЗМОЖНО ЗА СЧЕТ 
+
+<td>{{ $joined->user->name }}</td>
+<td>{{ $joined->card->name }}</td>
+
+
+app\Models\Joined.php
+
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Joined extends Model {
+
+    public $timestamps = false;
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array
+     */
+
+    protected $fillable = [
+         'user_id', 'card_id', 'number'
+    ];
+
+    /**
+     * One to Many relation
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\belongsTo
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * One to One relation
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne
+     */
+    public function card()
+    {
+        return $this->belongsTo(Card::class);
+    }
+
+}
+
+<td>{{ $joined->card->type->name }}</td>
+
+app\Models\Card.php
+
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Card extends Model {
+
+    public $timestamps = false;
+
+    /**
+     * One to One relation
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\belongsTo
+     */
+    public function type()
+    {
+        return $this->belongsTo(Type::class);
+    }
+
+}

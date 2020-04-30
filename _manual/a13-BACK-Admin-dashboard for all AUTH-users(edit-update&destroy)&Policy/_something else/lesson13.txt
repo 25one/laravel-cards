@@ -1,0 +1,127 @@
+----13-BACK-Admin-dashboard for all AUTH-users
+
+dashboard for all users (!!!ONLY users - AUTH) - !!!BUT ONLY SHOW, NOT UPDATE AND DELETE + !!!NOT CREATE NEW
+
+---
+«Front»-ВОПРОСЫ+РОУТ (ОТОБРАЖЕНИЕ)
+
+resourses\views\front\navbar.blade.php
+
+Remove @admin
+
+                       <div class="dropdown-menu dropdown-menu-right size" aria-labelledby="navbarDropdown">
+                          @auth
+                              <a class="dropdown-item" href="{{ route('dashboard') }}">Dashboard</a>
+                          @endauth
+                           <a class="dropdown-item" href="{{ route('logout') }}"
+                              onclick="event.preventDefault();
+                                            document.getElementById('logout-form').submit();">
+                               {{ __('Logout') }}
+                           </a>
+
+...МАЛО - http://laravel-cards/
+
+routes\web.php
+
+/*
+|--------------------------------------------------------------------------
+| Backend
+|--------------------------------------------------------------------------|
+*/
+Route::prefix('')->namespace('Back')->group(function () {
+
+   //Route::middleware('admin')->group(function () {
+   Route::middleware('auth')->group(function () {
+      Route::name('dashboard')->get('/dashboard', 'AdminController@index');
+      //Route::name('dashboard')->get('/dashboard', 'AdminController@index')->middleware('admin');
+      Route::resource('cards', 'AdminController');
+   });
+
+});
+
+...СМЕЩЕНИЕ ВЕРСТКИ, Т.К. В resourses\views\back\brick-standard.blade.php
+@admin
+<td class="center widthbutton"><a class="btn btn-danger listbuttonremove" href="{{ route('cards.destroy', [$card->id]) }}"><i class="fa fa-trash-o" aria-hidden="true"></i></a></td>
+<td class="col-md-6 col-sm-6 col-xs-6 center widthbutton"><a class="btn btn-primary listbuttonupdate" href="{{ route('cards.edit', [$card->id]) }}"><i class="fa fa-edit" aria-hidden="true"></i></a></td>
+@endadmin
+...НО ТАК И ДОЛЖНО БЫТЬ...
+...ТОГДА
+… resourses\views\back\index.blade.php
+                      <table>
+                         <thead>
+                          <tr>
+                            @admin
+                            <td class="widthbutton">&nbsp;</td>
+                            <td class="widthbutton">&nbsp;</td>
+                            @endadmin
+                            <td>User Name</td>
+                            <td>Card Number</td>                            
+                            <td>Card Name</td>
+                            <td>Card Type</td>
+                          </tr>  
+                          </thead>
+
+
+… + НУЖНО НЕ ОТОБРАЖАТЬ Add new Card -  resourses\views\back\layout.blade.php
+
+                @admin
+                <li>
+                    <a href="{{ route('cards.create') }}">
+                        <i class="fa fa-folder-o"></i> <span>Add new Card</span>
+                    </a>
+                </li>
+                @endadmin
+
+...НО ЭТОГО МАЛО...
+---
+«Back»-ВОПРОСЫ (ПРАВА НА ДЕЙСТВИЯ)
+
+Контроллер ресурсов RESTful
+Verb    Path                        Action  Route Name
+GET     /users                      index   users.index
+GET     /users/create               create  users.create
+POST    /users                      store   users.store
+GET     /users/{user}               show    users.show
+GET     /users/{user}/edit          edit    users.edit
+PUT     /users/{user}               update  users.update
+PUT     /comments/{comment}         update  comments.update
+DELETE  /users/{user}               destroy users.destroy
+
+(!!!ПЕРЕЛОГИНИТЬСЯ)
+...СЕЙЧАС РАБОТАЮТ
+/cards/create
+/cards/1/edit
+...ЧЕГО БЫТЬ НЕ ДОЛЖНО
+
+
+app/Http/Controllers/AdminController.php
+
+    public function __construct(AdminRepository $repository)
+    {
+        //$this->middleware('auth');
+        //$this->middleware('admin');
+        $this->middleware('admin')->only('create', 'store', 'edit', 'update', 'destroy');
+        $this->repository = $adminrepository;
+        $this->namespace = 'back';
+    }
+
+...cards/create — ВЫБРАСЫВАЕТ НА home
+
+---
+«Back»-ЕЩЕ ВОПРОСЫ (ВИДИМ ТОЛЬКО СВОЕ)
+
+app/Http/Repositories/AdminRepository.php
+
+    public function getData($parameters, $nbrPages)
+    {
+        $query = $this->model
+            ->select('id', 'user_id', 'card_id', 'number')
+            ->orderBy($parameters['order'], $parameters['direction']);
+            //->paginate($nbrPages);
+            //if(\Auth::user()->role !== 'admin') $query->where('user_id', '=', \Auth::user()->id); //ИЛИ ТАК...
+            if(auth()->user()->role !== 'admin') $query->where('user_id', '=', auth()->user()->id); //ИЛИ ТАК...   
+        
+        return $query->paginate($nbrPages);      
+    }
+
+(ПРИ СМЕНЕ auth()-> - \Auth:: - ПЕРЕЛОГИНИТЬСЯ)

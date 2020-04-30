@@ -1,0 +1,78 @@
+13.CART - ONLY FOR AUTH-USERS + USERS CAN SEE ONLY THEIR CARTS
+
+1.routes\web.php
+
+/*
+|--------------------------------------------------------------------------
+| Frontend
+|--------------------------------------------------------------------------|
+*/
+Route::prefix('')->namespace('Front')->group(function () {
+
+  Route::name('home')->get('/', 'ShopController@index');
+  Route::name('product')->get('/product/{id}', 'ShopController@product');
+  
+    Route::middleware('auth')->group(function () {  //!!!ONLY AUTH-USERS
+     Route::name('cart')->get('/cart', 'ShopController@cart');
+     Route::name('tocart')->post('/tocart', 'ShopController@tocart');
+     Route::name('clearall')->post('/clearall', 'ShopController@clearall');
+     Route::name('removeone')->post('/removeone', 'ShopController@removeone');
+    });
+
+  Route::name('subscribe')->post('/subscribe', 'ShopController@subscribe'); //subscribe
+
+});
+
+
+2.ShopRepository.php
+
+    /**
+     * Store to cart.
+     *
+     * @return \Illuminate\Contracts\Support\Renderable
+     */
+    public function tocart($request)
+    {
+        //$this->model_cart->create($request->all());  
+        //Cart::create($request->all());
+        //$this->model_cart->user_id = 1;
+        $this->model_cart->user_id = auth()->user()->id; //!!!auth()->user()->id
+        $this->model_cart->name = $request->name;
+        $this->model_cart->price = $request->price;
+        $this->model_cart->image = $request->image;    
+        $this->model_cart->save();                    
+    }    
+
+    /**
+     * Create a query for Cart.
+     *
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function fromcart()
+    {
+        $query = $this->model_cart
+            ->select('id', 'user_id', 'name', 'price', 'image')
+            ->where('user_id', auth()->user()->id); //!!!auth()->user()->id
+            //->orderBy('price', 'asc');
+
+        //if($request->search) $query->where('name', 'like', '%' . $request->search . '%');
+
+        return $query->get();
+    }
+
+
+3.views\front\cart.blade.php
+
+УБРАТЬ
+
+                                        <th>User</th>     
+
+views\front\brick-standard-cart.blade.php
+
+УБРАТЬ
+
+                                        <td>
+                                            <span>{{$cart->user->name}}</span>
+                                        </td>                                      
+
+

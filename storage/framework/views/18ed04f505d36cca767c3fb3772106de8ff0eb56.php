@@ -1,0 +1,1 @@
+<h2>Access error...</h2><?php /**PATH /home/alex/www/laravel-cards/resources/views/errors/403.blade.php ENDPATH**/ ?>

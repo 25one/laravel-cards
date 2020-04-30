@@ -1,0 +1,32 @@
+2.Изменить размещение файлов контроллеров и вью, разместив их в каталогах Front/Back (front/back).
+
+1.routes\web.php
+all routes change -> Front\
+Route::name('home')->get('/', 'Front\ShopController@index');
+...
+
+2.Create dir for Controllers:
+Controllers\Front, Back + rename in Front\ShopController.php - open...
+
+namespace App\Http\Controllers\Front;
+
+use Illuminate\Http\Request;
+use App\ {
+    Http\Controllers\Controller,
+    ...
+
+!!!view("shop. ... -> view("front.    
+
+3.Create dir for views:
+views\front, back + rename all files from shop in front - open index, product, cart
+
+@extends('front.layout')
+
+@include('front. ...
+
+4.
+sudo chmod -R 777 storage
+sudo chmod -R 777 bootstrap/cache
+php artisan config:cache 
+php artisan cache:clear
+php artisan view:clear

@@ -1,0 +1,207 @@
+-----2-FRONT-Simple MVC-controller&view&public-css&js
+
+---
+1.routes
+
+routes\web.php
+
+/*
+Route::get('/', function () {
+    return view('welcome');
+});
+*/
+
+Auth::routes();
+
+Route::get('/home', 'HomeController@index')->name('home-login'); //!!!ПОКА НЕ КОММЕНТИРУЕМ
+
+/*
+|--------------------------------------------------------------------------
+| Frontend
+|--------------------------------------------------------------------------|
+*/
+// Home
+Route::name('home')->get('/', 'Front\CardController@index');
+
+/*
+|--------------------------------------------------------------------------
+| Backend
+|--------------------------------------------------------------------------|
+*/
+
+или
+
+Route::prefix('')->namespace('Front')->group(function () {
+   Route::name('home')->get('/', 'CardController@index');
+});
+
+
+2.controller
+
+Create folders Front and Back.
+
+app\Http\Controllers — copy HomeController.php to Front\CardController.php
+
+<?php
+
+namespace App\Http\Controllers\Front; //!!!
+
+use Illuminate\Http\Request;
+use App\ {
+    Http\Controllers\Controller  //!!! + without «,» for end
+
+};
+
+class CardController extends Controller
+{
+    /**
+     * Create a new controller instance.
+     *
+     * @return void
+     */
+    public function __construct()
+    {
+        //$this->middleware('auth');
+    }
+
+    /**
+     * Show the application home-page.
+     *
+     * @return \Illuminate\Contracts\Support\Renderable
+     */
+    public function index()
+    {
+        return view('front.index');
+    }
+}
+
+
+3.simple-view
+
+config\app.php
+…
+    //'name' => env('APP_NAME', 'Laravel'),
+    'name' => 'Cards',
+...
+
+php artisan config:cache
+
+resourses\views
+
+Create folders front and back.
+
+In front create index.blade.php with content 
+
+<title>{{ config('app.name') }}</title>
+<h3>Home</h3>
+
+http://laravel-cards/
+
+
+4.blade-view (copy-paste resourses\view\front (…) + public\js(css) (…) + php artisan view:clear)
+
+resourses\views\front
+
+layout.blade.php
+...
+    <link rel="stylesheet" href="{{ asset('public/css/mine.css') }}">
+
+    @yield('css')
+…
+<body>
+    <div class="wrapper">
+        @include('front.navbar')
+        <div class="content-wrapper">
+            @yield('main')
+        </div>
+    </div>
+…
+<script src="{{ asset('public/js/jQuery-2.2.0.min.js') }}"></script>
+<script src="{{ asset('public/js/jquery-ui.min.js') }}"></script>  
+…
+@yield('js')
+
+</body>
+
+
+navbar.blade.php
+
+...
+<a class="nav-link" href="{{ route('home') }}">Home </a>
+...
+(route('login'), route('register'), route('logout'))
+
+@guest
+
+@else
+
+                     {{ Auth::user()->name }}
+                              <a class="dropdown-item" href="#">Dashboard</a>
+                              <a class="dropdown-item" href="{{ route('logout') }}"
+                              onclick="event.preventDefault();
+                                            document.getElementById('logout-form').submit();">
+                               {{ __('Logout') }}
+                           </a>
+
+                     <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
+                               @csrf
+                           </form>
+
+@endguest
+
+
+index.blade.php
+
+@extends('front.layout')
+
+@section('css')
+
+@endsection
+
+@section('main')
+
+<h3>Front-home-page</h3>
+
+@endsection
+
+@section('js')
+    <script src="{{ asset('public/js/mine.js') }}"></script>
+    <script>
+       //...
+    </script>
+@endsection    
+
+
+public/css — main.css
+
+public/js — main.js
+
+$.ajaxSetup({
+    headers: {
+        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+    }
+})
+
+var BaseRecord=(function() {
+
+return {
+
+//...
+
+}
+
+})();
+
+(layout.blade.php - <meta name="csrf-token" content="{{ csrf_token() }}">)
+
+php artisan config:cache 
+php artisan cache:clear
+php artisan view:clear
+
+(В ОТЛАДЧИКЕ(Network) МОЖНО ПОСМОТРЕТЬ, ЧТО ВСЕ ПОДКЛЮЧИЛОСЬ)
+
+...ПРОВЕРИТЬ ЧЕРЕЗ ЛОГИН — http://laravel-cards/home - 404| Not found — ПОПРАВИМ app\Http\Controllers\Auth\LoginController.php (ПОКА МОЖНО СБРОСИТЬ ЧЕРЕЗ ВЕРХ...)
+    //protected $redirectTo = '/home';
+    protected $redirectTo = '/';
+(+ И ЗАОДНО (ПОТОМ ВСЕ-РАВНО БУДЕТ НУЖНО) ТО ЖЕ САМОЕ В RegisterController.php)
+

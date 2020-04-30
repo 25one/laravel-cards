@@ -1,0 +1,98 @@
+11-BACK-Admin-RESTful-edit-update
+
+--- 
+GET-edit(view) - !!!but with data selected card - !!!КОНТРОЛЛЕРЫ RESTful
+
+Verb    Path                        Action  Route Name
+GET     /cards/{card}/edit          edit    cards.edit
+
+Verb - метод передачи
+Route Name — роут во вью
+Action — имя метода в котроллере
+
+1.views/back/brick-standard.blade.php (href="{{ route('products.edit', [$product->id]) }}")
+
+<td class="col-md-6 col-sm-6 col-xs-6 center widthbutton"><a class="btn btn-primary listbuttonupdate" href="{{ route('products.edit', [$product->id]) }}"><i class="fa fa-edit" aria-hidden="true"></i></a></td>
+
+
+2.AdminController.php
+
+use App\ {
+    Http\Controllers\Controller,
+    Repositories\AdminRepository,
+    Http\Requests\ProductRequest,
+    Models\Product //!!!
+
+};
+
+    /**
+     * Show the form for editing the specified resource.
+     *
+     * @param  \App\Models\Product $product
+     * @return \Illuminate\Http\Response
+     */    
+    public function edit(Product $product) //!!!$product - RESTful-Controllers
+    {
+       return view('back.products.edit', compact('product')); //!!!$product - RESTful-Controllers
+    }  
+
+3.views\back\products\template.blade.php (for image and checkbox - @elseif(isset($product)){{asset('public/img/' . $product->image)}} + @if (\Request::is('products/create')) + @elseif(isset($product)){{$product->image)}} + @if(isset($product) && $product->top9 == 1){{'checked'}}@endif)
+
+                        <div class="form-group">
+                          <img class="img_product" src="@if(isset($image)){{asset('public/img/bg-img/' . $image)}}@elseif(isset($product)){{asset('public/img/' . $product->image)}}@else{{asset('public/img/bg-img/nophoto.jpg')}}@endif" alt="" style="width: 150px; margin-top: 5px;" />
+                          <!-- not updating image, only creating -->
+                          @if (\Request::is('products/create'))  
+                          <form method="post" action="{{ route('upload') }}" name="form_upload" enctype="multipart/form-data">
+                                   {{ csrf_field() }}    
+                              <input type="file" name="image" class="upload_field">
+                              <button type="submit" class="upload_submit">Go</button>
+                              <button type="button" class="btn btn-primary" style="width: 150px; margin-top: 5px;">Select</button>
+                          </form>   
+                          @endif                                
+...
+                        <input type="hidden" id="image" name="image" value="@if(isset($image)){{'bg-img/' . $image}}@elseif(isset($product)){{$product->image)}}@else{{'bg-img/nophoto.jpg'}}@endif">   
+...
+                            <input type="checkbox" id="top9" name="top9" @if(isset($product) && $product->top9 == 1){{'checked'}}@endif style="vertical-align: top;"> 
+
+
+--- 
+PUT-update !!!but with data selected card - !!!КОНТРОЛЛЕРЫ RESTful
+
+Verb    Path                        Action  Route Name
+PUT     /cards/{card}               update  cards.update
+
+Verb - метод передачи
+Route Name — роут во вью
+Action — имя метода в котроллере
+
+1.AdminController.php
+
+    /**
+     * Update the specified resource in storage.
+     *
+     * @param  \App\Http\Requests\ProductRequest $request
+     * @param  \App\Models\Product $product
+     * @return \Illuminate\Http\Response
+     */
+    public function update(ProductRequest $request, AdminRepository $repository, Product $product) //!!!$product - RESTful-Controllers
+    {
+       $repository->update($request, $product); //!!!$product - RESTful-Controllers
+
+       return redirect(route('dashboard'))->with('product-updated', 'Product has been successfully updated...');
+    }  
+
+
+2.AdminRepository.php
+
+    /**
+     * Update product.
+     *
+     * @param  \App\Models\Product $product
+     * @return void
+     */            
+    public function update($request, $product)
+    {
+       $product->update($request->all());
+    }
+
+

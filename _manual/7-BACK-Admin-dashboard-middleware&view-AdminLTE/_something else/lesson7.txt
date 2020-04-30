@@ -1,0 +1,124 @@
+----7-Admin-dashboard-middleware&view-AdminLTE
+
+---
+Admin-dashboard-middleware 
+
+!!!НО, СЕЙЧАС, ЕСЛИ ДЛЯ ЛЮБОГО ПОЛЬЗОВАТЕЛЯ + ДАЖЕ ПРОСТО БЕЗ auch http://laravel-cards/dashboard — ПОПАДАЕМ НА ЭТУ СТРАНИЦУ...
+
+app\Http\Kernel.php
+
+    protected $routeMiddleware = [
+        'auth' => \App\Http\Middleware\Authenticate::class,
+        ...
+        'can' => \Illuminate\Auth\Middleware\Authorize::class,
+        'guest' => \App\Http\Middleware\RedirectIfAuthenticated::class,
+        …
+        'admin' => \App\Http\Middleware\Admin::class,
+    ];
+
+app\Http\Middleware\Admin.php (just copy)
+
+<?php
+
+namespace App\Http\Middleware;
+
+use Closure;
+
+class Admin
+{
+    /**
+     * Handle an incoming request.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \Closure  $next
+     * @return mixed
+     */
+    public function handle($request, Closure $next)
+    {
+        $user = $request->user();
+
+        if ($user && $user->role === 'admin') {
+            return $next($request);
+        }
+
+         return redirect()->route('home');
+         //return response()->view('errors.403');
+    }
+}
+
+routes\web.php
+
+Route::prefix('')->namespace('Back')->group(function () {
+
+   Route::middleware('admin')->group(function () {
+      Route::name('dashboard')->get('/dashboard', 'AdminController@index');
+   });
+
+});
+
+
++ ЧТОБЫ ПРИ Login-Admin СРАЗУ НА dashboard (ДЛЯ ДРУГИХ «ПЕРЕКИНЕТ» НА home «АВТОМАТОМ»)
+
+app\Http\Controllers\Auth\LoginController.php
+
+    //protected $redirectTo = '/home';
+    //protected $redirectTo = '/';
+    protected $redirectTo = '/dashboard';
+
+
+--- ВТОРОЙ ВАРИАНТ ТОГО ЖЕ — ОПЯТЬ В РОУТЕ
+
+Route::prefix('')->namespace('Back')->group(function () {
+
+   //Route::middleware('admin')->group(function () {
+      Route::name('dashboard')->get('/dashboard', 'AdminController@index')->middleware('admin');
+   //});
+
+});
+
+
+--- ТРЕТИЙ ВАРИАНТ ТОГО ЖЕ — В КОНТРОЛЛЕРЕ
+
+Route::prefix('')->namespace('Back')->group(function () {
+
+   //Route::middleware('admin')->group(function () {
+      Route::name('dashboard')->get('/dashboard', 'AdminController@index');
+   //});
+
+});
+
+    public function __construct()
+    {
+        //$this->middleware('auth'); 
+        $this->middleware('admin');
+    }
+
+--- AdminLTE
+resources\views\back
+
+index.blade.php rename to index.blade-test.php
+
+layout.blade.php + index.blade.php (+brick-standard.blade.php)
+
++ public\AdminLTE
+
+                      <table>
+                         <thead>
+                          <tr>
+                            <td class="widthbutton">&nbsp;</td>
+                            <td class="widthbutton">&nbsp;</td>
+                            <td>User Name</td>
+                            <td>Card Number</td>                            
+                            <td>Card Name</td>
+                            <td>Card Type</td>
+                          </tr>  
+                          </thead>
+                          <tbody id="pannel">
+                             @ //include('back.brick-standard')
+                         </tbody>    
+                       </table>
+                     </div>
+                     <hr>        
+
+!!!php artisan view:clear
+

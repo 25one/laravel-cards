@@ -1,0 +1,1 @@
+<h2>This action is not accessed for you!</h2><?php /**PATH /home/alex/www/laravel-auto-group1-test/resources/views/errors/403.blade.php ENDPATH**/ ?>

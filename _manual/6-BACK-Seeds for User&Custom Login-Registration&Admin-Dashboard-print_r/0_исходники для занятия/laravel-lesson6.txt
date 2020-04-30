@@ -1,0 +1,197 @@
+----6-Seeds for User&Custom Login-Registration&Admin-Dashboard-print_r
+
+phpmydmin
+-drop 2014_10_12_000000_create_users_table.php DB laravel-cards
+-delete item about it in table migrations
+
+database\migrations
+2014_10_12_000000_create_users_table.php add field (at the end)
+$table->enum('role', array('user', 'redac', 'admin'))->default('user'); 
+
+database\seeds\DatabaseSeeder.php (copy-paste)
+
+                'password' => bcrypt('12345678'),
+                'role' => 'admin',
+
+               'password' => bcrypt('12345678'),
+                'role' => 'redac',  
+
+               'password' => bcrypt('12345678'),
+                'role' => 'user',  
+
+php artisan migrate --seed
+
+---
+Custom Login + Registration - form
+
+resourse\views\auth\login.blade.php + … register.blade.php
+
+php artisan view:clear
+
+---
+@admin
+
+resources\views\front\navbar.blade.php
+
+                           @admin
+                              <a class="dropdown-item" href="#">Dashboard</a>
+                           @endadmin
+
+
+app\Providers\AppServiceProvider.php
+
+use Illuminate\Support\Facades\Blade;
+
+    public function boot()
+    {
+        view()->composer('front/index', TypeComposer::class);
+
+        Blade::if('admin', function () {
+            return auth()->user()->role === 'admin';
+        });
+
+        Blade::if('redac', function () {
+            return auth()->user()->role === 'redac';
+        });        
+    }
+
+php artisan view:clear
+
+---
+Back-page
+
+--- 
+Admin-dashboard (Test)
+
+resources\views\front\navbar.blade.php
+
+                          @admin
+                              <a class="dropdown-item" href="{{ route('dashboard') }}">Dashboard</a>
+                           @endadmin
+
+
+routes\web.php
+
+/*
+|--------------------------------------------------------------------------
+| Backend
+|--------------------------------------------------------------------------|
+*/
+Route::prefix('')->namespace('Back')->group(function () {
+
+   Route::name('dashboard')->get('/dashboard', 'AdminController@index');
+
+});
+
+app\Http\Controllers\AdminController.php (it's in here)
+
+<?php
+
+namespace App\Http\Controllers\Back;
+
+use Illuminate\Http\Request;
+use App\ {
+    Http\Controllers\Controller,
+    Repositories\AdminRepository,
+    Http\Controllers\Traits\Indexable  
+
+};
+
+class AdminController extends Controller
+{
+
+    use Indexable;
+
+    /**
+     * Create a new controller instance.
+     *
+     * @return void
+     */
+    public function __construct(AdminRepository $adminrepository)
+    {
+        //$this->middleware('auth');
+        $this->repository = $adminrepository;
+        $this->namespace = 'back';
+    }
+
+}
+
+...Т.К. Http\Controllers\Traits\Indexable 
+   public function index(Request $request)
+    {
+        //CardController, AdminController
+        $cards = $this->repository->getData($request, $this->getParameters());
+...
+
+app\Repositories\AdminRepository.php - from CardRepository.php + model Card - ВРЕМЕННО...
+
+<?php
+
+namespace App\Repositories;
+
+use App\Models\ {
+    Card
+};
+
+class AdminRepository
+{
+    /**
+     * The Model instance.
+     *
+     * @var \Illuminate\Database\Eloquent\Model
+     */
+    protected $model;
+
+
+    /**
+     * Create a new CardRepository instance.
+     *
+     * @param  \App\Models\Card $card
+     */
+    public function __construct(Card $card)
+    {
+        $this->model = $card;
+    }
+
+}
+
+    /**
+     * Create a query for Card.
+     *
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function getData($request, $parameters) //$parameters['order'], $parameters['direction']
+    {
+        $query = $this->model
+           ->select('id', 'type_id', 'name', 'title')
+           //->where($parameters['wherewho'], 'like', '%' . $parameters['wherewhat'] . '%')
+           ->orderBy($parameters['order'], $parameters['direction']);
+
+        if($request->type) $query->where('type_id', $request->type); 
+ 
+        return $query->get();   
+    }    
+
+config\parameters.php
+...
+    'back' => [
+        'order' => 'type_id', //user_id
+        'direction' => 'asc', 
+    ],
+...
+
++php artisan config:cache    
+
+resources\views\back\index.blade.php
+
+@php
+print_r($cards);
+@endphp
+
+sudo chmod -R 777 storage (может, и не нужно)
+
+/admin/dashboard
+
+ЕСЛИ НУЖНО:
+...Route::prefix('admin')... + Ctrl+F5 for http://laravel-cards/:
+http://laravel-cards/admin/dashboard, ПОКА УБЕРЕМ...

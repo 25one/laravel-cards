@@ -1,0 +1,113 @@
+----12-BACK-Admin-RESTful-destroy(ajax)
+
+Контроллер ресурсов RESTful
+Verb    Path                        Action  Route Name
+GET     /users                      index   users.index
+GET     /users/create               create  users.create
+POST    /users                      store   users.store
+GET     /users/{user}               show    users.show
+GET     /users/{user}/edit          edit    users.edit
+PUT     /users/{user}               update  users.update
+PUT     /comments/{comment}         update  comments.update
+DELETE  /users/{user}               destroy users.destroy
+
+resources\views\back\brick-standard.blade.php
+
+<td class="center widthbutton"><a class="btn btn-danger listbuttonremove" href="{{ route('cards.destroy', [$joined->id]) }}"><i class="fa fa-trash-o" aria-hidden="true"></i></a></td>
+
+resources\views\back\index.blade.php
+
+@section('js')
+    <script src="{{ asset('public/js/mine.js') }}"></script>
+    <script>
+       $(document).ready(function(){
+          $('.listbuttonremove').click(function(){
+             BaseRecord.destroy($(this).attr('href'));
+             return false;
+          });
+       });
+    </script>
+@endsection    
+
+
+public\js\mine.js
+
+destroy: function(url){
+   var ajaxSetting={
+      method: 'delete',
+      url: url,
+      //data: {
+      //   type: type_id, 
+      //},
+      success: function(data) {
+         alert(data); //ПОКА БЕЗ ajax-ОБНОВЛЕНИЯ СТРАНИЦЫ
+      },
+   };
+   $.ajax(ajaxSetting);
+},
+
+app\Http\Controllers\AdminController.php
+
+    /**
+     * Remove the card from storage.
+     *
+     * @param  \App\Models\Joined $card
+     * @return \Illuminate\Http\Response
+     */
+    public function destroy(Joined $card)
+    {
+        //$this->authorize('manage', $card);
+
+        $card->delete();
+
+        return response()->json();
+    }            
+
+---
+...ДЛЯ ОБНОВЛЕНИЯ ПОСЛЕ УДАЛЕНИЯ   
+
+public\js\mine.js
+
+destroy: function(url){
+   var ajaxSetting={
+      method: 'delete',
+      url: url,
+      //data: {
+      //   type: type_id, 
+      //},
+      success: function(data) {
+         //alert(data);
+         BaseRecord.typeSelect(0, '/dashboard'); //!!!/dashboard - т.к.другой вид - back
+      },
+   };
+   $.ajax(ajaxSetting);
+},
+
+...then
+
+typeSelect: function(type_id, url){ //!!!url - or front, or back
+   var ajaxSetting={
+      method: 'get',
+      //url: '/',
+      url: url, //!!!url - or front, or back
+      data: {
+         type: type_id,	
+      },
+      success: function(data) {
+         $('#pannel').html(data.table);	
+          $('.listbuttonremove').click(function(){    //!!!ПЕРЕВЕС СОБЫТИЯ
+             BaseRecord.destroy($(this).attr('href'));
+             return false;
+          });         
+      },
+   };
+   $.ajax(ajaxSetting);
+},
+
++ then for front
+
+resources\views\front\index.blade.php
+
+...
+BaseRecord.typeSelect($(this).val(), '/'); //!!!'/'
+...

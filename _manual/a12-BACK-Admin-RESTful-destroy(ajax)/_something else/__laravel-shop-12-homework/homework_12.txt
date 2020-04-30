@@ -1,0 +1,115 @@
+12.BACK-Admin-RESTful-destroy(ajax)
+
+--- 
+DELETE-destroy - !!!but with data selected card - !!!КОНТРОЛЛЕРЫ RESTful
+
+Verb    Path                        Action  Route Name
+DELETE  /users/{user}               destroy users.destroy
+
+Verb - метод передачи
+Route Name — роут во вью
+Action — имя метода в котроллере
+
+1.views/back/brick-standard.blade.php (href="{{ route('products.destroy', [$product->id]) }}")
+
+<td class="center widthbutton"><a class="btn btn-danger listbuttonremove" href="{{ route('products.destroy', [$product->id]) }}"><i class="fa fa-trash-o" aria-hidden="true"></i></a></td>
+
+
+2.views/back/index.blade.php ($(this).attr('href') -> {{ route('products.destroy', [$product->id]) }} -> products/3 (3-id for example))
+
+@section('js') 
+    <!-- !!! main.js (or mine.js - see in public)-->
+    <script src="{{ asset('public/js/main.js') }}"></script>
+    <script>
+       $(document).ready(function(){
+         $('.listbuttonremove').click(function(){
+            BaseRecord.destroy($(this).attr('href'));
+            return false;
+         });
+       });
+    </script>
+@endsection    
+
+
+3.public\js\main.js
+
+destroy: function(url){
+   //alert(value);
+   var ajaxSetting={
+      method: 'delete',
+      url: url,
+      //data: {
+      //   email: email,
+      //},
+      success: function(data){
+        alert(data); 
+        //BaseRecord.cart();
+
+      },
+   };
+   $.ajax(ajaxSetting);
+},
+
+
+4.public\js\main.js
+
+destroy: function(url){
+   //alert(value);
+   var ajaxSetting={
+      method: 'delete',
+      url: url,
+      //data: {
+      //   email: email,
+      //},
+      success: function(data){
+        //alert(data); 
+        BaseRecord.dashboard(); //!!!ajax-return to dashboard (similar to cart)
+
+      },
+   };
+   $.ajax(ajaxSetting);
+},
+
+dashboard: function(){  
+   //alert(value);
+   var ajaxSetting={
+      method: 'get',
+      url: '/dashboard', //!!!url
+      //data: {
+      //   id: id,
+      //},
+      success: function(data){
+         //alert(data.table);
+         $('.back-pannel').html(data.table); //!!!.back-pannel
+         $('.listbuttonremove').click(function(){
+            BaseRecord.destroy($(this).attr('href'));
+            return false;
+         });         
+      },
+   };
+   $.ajax(ajaxSetting);
+},
+
+5.AdminController.php
+
+    /**
+     * Show the home-page.
+     *
+     * @return \Illuminate\Contracts\Support\Renderable
+     */
+    public function index(Request $request, AdminRepository $repository)
+    {
+        $products = $repository->funcSelect($request, $this->getParameters());
+
+        // Ajax response
+        if ($request->ajax()) {
+            return response()->json([   //from ShopController, but "back.brick-standard"
+                'table' => view("back.brick-standard", ['products' => $products])->render(),
+            ]);
+        }     
+
+        return view('back.index', compact('products'));
+    }
+
+
+

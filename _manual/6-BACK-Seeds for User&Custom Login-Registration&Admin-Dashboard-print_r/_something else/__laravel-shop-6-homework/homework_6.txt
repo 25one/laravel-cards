@@ -1,0 +1,202 @@
+6.migrations&seeds-role of user, 
+
+1.Удалить все таблицы из БД laravel-shop,
+
+-добавить в таблицу users поле role:
+$table->enum('role', array('user', 'redac', 'admin'))->default('user'); 
+
+-в DatabaseSeeder.php добавить:
+...
+use App\Models\User;
+
+    public function run()
+    {
+
+        // Users
+        User::create(
+            [
+                'name' => 'admin',
+                'email' => 'admin@gmail.com',
+                'password' => bcrypt('12345678'),
+                'role' => 'admin',
+                'remember_token' => str_random(10),
+            ]
+        ); 
+
+        ...
+
+т.е. данные по users (из DatabaseSeeder.php проекта laravel-cards)        
+
+-php artisan migrate --seed
+
+2.Откорректировать views\front\layout.blade.php таким образом, чтобы в header появились пункты Login, Register (copy from front\navbar проекта laravel-cards)
+
+                   <!-- Authentication Links -->
+                   @guest
+                     <li class="nav-item">
+                         <a class="nav-link" href="{{ route('login') }}">{{ __('Login') }}</a>
+                     </li>
+                     <li class="nav-item">
+                         <a class="nav-link" href="{{ route('register') }}">{{ __('Register') }}</a>
+                     </li>
+                   @else
+                   <li class="nav-item dropdown">
+                       <a id="navbarDropdown" class="nav-link dropdown-toggle" href="#" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
+                           {{ Auth::user()->name }} <span class="caret"></span>
+                       </a>
+
+                       <div class="dropdown-menu dropdown-menu-right size" aria-labelledby="navbarDropdown">
+                           @admin
+                              <a class="dropdown-item" href="#">Dashboard</a>
+                           @endadmin                 
+                           <a class="dropdown-item" href="{{ route('logout') }}"
+                              onclick="event.preventDefault();
+                                            document.getElementById('logout-form').submit();">
+                               {{ __('Logout') }}
+                           </a>
+
+                           <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
+                               @csrf
+                           </form>
+                       </div>
+                   </li>
+                   @endguest
+
+(роут Dashboard пока отсутствует (href="#"))
+
+
+3.Заменить стандартные laravel-views-login (views\auth), register на кастомные (copy from проект laravel-cards)
+ + !!!php artisan view:clear.
+
+ + LoginController.php, RegisterController.php 
+ protected $redirectTo = '/';
+
+ + залогиниться/разлогиниться
+
+ 4.Описать директивы admin(redac) в app\Providers\AppServiceProvider.php
+
+use Illuminate\Support\Facades\Blade;
+
+    public function boot()
+    {
+        Blade::if('admin', function () {
+            return auth()->user()->role === 'admin';
+        });
+
+        Blade::if('redac', function () {
+            return auth()->user()->role === 'redac';
+        });        
+    }
+
+!!!+php artisan view:clear 
+
+5.Поставить роут для Dashboard в resources\views\front\layout.blade.php
+
+                          @admin
+                              <a class="dropdown-item" href="{{ route('dashboard') }}">Dashboard</a>
+                           @endadmin
+
++описать его в routes\web.php
+
+/*
+|--------------------------------------------------------------------------
+| Backend
+|--------------------------------------------------------------------------|
+*/
+Route::prefix('')->namespace('Back')->group(function () {
+
+   Route::name('dashboard')->get('/dashboard', 'AdminController@index');
+
+});
+
+6.Создать начальный Back\AdminController.php !c подключением AdminRepository, вызовом из него метода выборки всех товаров из БД и выводом их во вью (в методе index):
+
+<?php
+
+namespace App\Http\Controllers\Back;
+
+use Illuminate\Http\Request;
+use App\ {
+    Http\Controllers\Controller,
+    Repositories\AdminRepository
+
+};
+
+class AdminController extends Controller
+{
+
+    /**
+     * Create a new controller instance.
+     *
+     * @return void
+     */
+    public function __construct() 
+    {
+        //$this->middleware('auth'); 
+    }
+
+    /**
+     * Show the home-page.
+     *
+     * @return \Illuminate\Contracts\Support\Renderable
+     */
+    public function index(Request $request, AdminRepository $repository)
+    {
+        $products = $repository->funcSelect($request);
+
+        return view('back.index', compact('products'));
+    }
+           
+}
+
+7.Создать начальный AdminRepository c подключением модели Product и выборкой всех товаров из БД:
+
+<?php
+
+namespace App\Repositories;
+
+use App\Models\ {
+    Product
+};
+
+class AdminRepository
+{
+
+    /**
+     * The Model instance.
+     *
+     * @var \Illuminate\Database\Eloquent\Model
+     */
+    protected $model_product;
+
+    /**
+     * Create a new AdminRepository instance.
+     *
+     * @param  \App\Models\Product $product
+     */
+    public function __construct(Product $product)
+    {
+        $this->model_product = $product;
+    }
+
+    /**
+     * Create a query for Product.
+     *
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function funcSelect($request)
+    {
+        $query = $this->model_product
+            ->select('id', 'name', 'price', 'image');
+
+        return $query->get();
+    }    
+
+}
+
+
+8.Создать начальный back\index.blade.php
+
+@php
+print_r($products);
+@endphp

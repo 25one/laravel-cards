@@ -1,0 +1,140 @@
+----10-BACK-RESTful-create-store (STORE)
+
+Контроллер ресурсов RESTful
+Verb    Path                        Action  Route Name
+GET     /users                      index   users.index
+GET     /users/create               create  users.create
+POST    /users                      store   users.store
+GET     /users/{user}               show    users.show
+GET     /users/{user}/edit          edit    users.edit
+PUT     /users/{user}               update  users.update
+PUT     /comments/{comment}         update  comments.update
+DELETE  /users/{user}               destroy users.destroy
+Verb - метод передачи
+Route Name — роут во вью
+Action — имя метода в котроллере
+
+--- 
+POST-store(insert)
+
+Контроллер ресурсов RESTful
+Verb    Path                        Action  Route Name
+GET     /cards                      index   cards.index
+GET     /cards/create               create  cards.create
+POST    /cards                      store   cards.store
+GET     /cards/{card}               show    cards.show
+GET     /cards/{card}/edit          edit    cards.edit
+PUT     /cards/{card}               update  cards.update
+PUT     /comments/{comment}         update  comments.update
+DELETE  /cards/{card}               destroy cards.destroy
+
+app\Http\Controllers\AdminController.php
+
+use App\ {
+    Http\Controllers\Controller,
+    Repositories\AdminRepository,
+    Http\Controllers\Traits\Indexable,    
+    Http\Requests\JoinedRequest
+
+};
+
+    /**
+     * Store a newly created card in storage.
+     *
+     * @param  \App\Http\Requests\JoinedRequest $request
+     * @return \Illuminate\Http\Response
+     */
+    public function store(Request $request) 
+    //public function store(JoinedRequest $request)
+    {
+        $this->repository->store($request);
+
+        return redirect(route('cards.create'))->with('card-ok', __('The card has been successfully created'));
+    }    
+
+app\Repositories\AdminRepository.php
+
+    /**
+     * Store post.
+     *
+     * @param  \App\Http\Requests\JoinedRequest $request
+     * @return void
+     */
+    public function store($request)
+    {
+        Joined::create($request->all());
+    }
+
+(!!!ЗА СЧЕТ «МАССОВОГО ПРИСВАИВАНИЯ» В МОДЕЛИ
+    protected $fillable = [
+         'user_id', 'card_id', 'number'
+    ];
+)
+
+resources\views\back\cards\template.blade.php
+
+            @if (session('card-ok'))
+                @component('back.components.alert')
+                    @slot('type')
+                        success
+                    @endslot
+                    {!! session('card-ok') !!}
+                @endcomponent
+            @endif
+(return redirect(route('cards.create'))->with('card-ok', __('The card has been successfully created'));)
+
+!!!ВАЛИДАЦИЯ
+
+Http\Requests\JoinedRequest.php
+
+<?php
+
+namespace App\Http\Requests;
+
+class JoinedRequest extends Request
+{
+    /**
+     * Get the validation rules that apply to the request.
+     *
+     * @return array
+     */
+    public function rules()
+    {
+        $regex = '/^\d{4}\s\d{4}\s\d{4}\s\d{4}$/';
+
+        return $rules = [
+            'number' => 'bail|required|regex:' . $regex,
+        ];
+    }
+}
+
+resources\views\back\cards\template.blade.php 
+
+                    @yield('form-open')
+
+                            <input type="text" class="form-control" id="number" name="number" value="@if(isset($card)) {{ $card->number }} @elseif(old('number')) {{ old('number') }} @endif" placeholder="777 777 777 777" required> 
+                            {!! $errors->first('number', '<small class="help-block">:message</small>') !!}
+
+                            <select class="form-control" name="card_id" id="type_id">
+                                @foreach ($types as $key => $type)
+                                   <option value="{{ $type->id }}" 
+                                    @if(isset($card) && $card->card_id == $type->id)
+                                       {{ 'selected' }} 
+                                    @endif
+                                   >@lang( $type->name)</option>
+                                @endforeach                       
+                            </select>
+
+                            <select class="form-control" name="user_id" id="user_id">
+                                @foreach ($users as $user)
+                                   <option value="{{ $user->id }}"
+                                    @if(isset($card) && $card->user_id == $user->id)
+                                       {{ 'selected' }} 
+                                    @endif
+                                   >@lang( $user->name)</option>
+                                @endforeach                 
+                            </select>
+
+                        <button type="submit" class="btn btn-primary">@lang('Submit')</button>
+
+

@@ -1,0 +1,217 @@
+9.BACK-RESTful-create-store (CREATE)
+
+Контроллер ресурсов RESTful
+Verb    Path                        Action  Route Name
+GET     /users                      index   users.index
+GET     /users/create               create  users.create
+POST    /users                      store   users.store
+GET     /users/{user}               show    users.show
+GET     /users/{user}/edit          edit    users.edit
+PUT     /users/{user}               update  users.update
+PUT     /comments/{comment}         update  comments.update
+DELETE  /users/{user}               destroy users.destroy
+Verb — метод выполнения
+Action — имя метода в котроллере
+Route Name — роут во вью
+
+
+1.routes\web.php
+
+Route::prefix('')->namespace('Back')->group(function () {
+
+   Route::middleware('admin')->group(function () {
+      Route::name('dashboard')->get('/dashboard', 'AdminController@index');
+      Route::resource('products', 'AdminController'); //!!!products
+   });
+
+});
+
+
+2.GET-create(view)
+
+GET     /users/create               create  users.create
+
+3.views\back\layout.blade.php
+
+                    <a href="{{ route('products.create') }}">
+                        <i class="fa fa-folder-o"></i> <span>Add new Product</span>
+                    </a>
+
+
+4.AdminController.php
+
+    /**
+     * Create a new view for creating a new product in storage.
+     *
+     * @param  ...
+     * @return \Illuminate\Http\Response
+     */              
+    public function create()
+    {
+       return view('back.products.create');
+    }
+
+
+5.from laravel-cards 
+
+views\back\products\
+
+create.blade.php
+edit.blade.php
+template.blade.php 
+
++views\back\components    
+
+6.back\products\create.blade.php (!!!products)
+
+@extends('back.products.template')
+
+@section('form-open')
+    <form method="post" action="{{ route('products.store') }}">
+                    {{ csrf_field() }}
+                {{ method_field('POST') }}   
+@endsection
+
++edit.blade.php (!!!products, $product)
+
+@extends('back.products.template')
+
+@section('form-open')
+    <form method="post" action="{{ route('products.update', [$product->id]) }}">
+                      {{ csrf_field() }}
+                  {{ method_field('PUT') }}   
+@endsection
+
+
+7.views\back\products\template.blade.php
+
+@extends('back.layout')
+
+@section('css')
+
+@endsection
+
+@section('main')
+
+    <div class="row">
+        <!-- left column -->
+       <div class="col-md-3">
+       </div>
+        <!-- center column -->       
+        <div class="col-md-6 margin">
+            @if (session('product-ok'))
+                @component('back.components.alert')
+                    @slot('type')
+                        success
+                    @endslot
+                    {!! session('product-ok') !!}
+                @endcomponent
+            @endif
+            <!-- general form elements -->
+            <div class="box box-primary">
+                <!-- form start -->
+                    <div class="box-body">
+                        <div class="form-group">       <!-- !!!/img/bg-img/ - custom -->    
+                          <img class="img_product" src="@if(isset($image)){{asset('public/img/bg-img/' . $image)}}@else{{asset('public/img/bg-img/nophoto.jpg')}}@endif" alt="" style="width: 150px; margin-top: 5px;" />
+                          <form method="post" action="{{ route('upload') }}" name="form_upload" enctype="multipart/form-data">
+                                            {{ csrf_field() }}    
+                              <input type="file" name="image" class="upload_field">
+                              <button type="submit" class="upload_submit">Go</button>
+                              <button type="button" class="btn btn-primary" style="width: 150px; margin-top: 5px;">Select</button>
+                          </form>         
+                        </div>
+                        @yield('form-open')  
+                        <!-- 'bg-img/' . - custom -->
+                        <input type="hidden" id="image" name="image" value="@if(isset($image)){{'bg-img/' . $image}}@else{{'bg-img/nophoto.jpg'}}@endif">
+                        <div class="form-group {{ $errors->has('name') ? 'has-error' : '' }}">
+                            <label for="name">@lang('Name')</label>
+                            <input type="text" class="form-control" id="name" name="name" value="@if(isset($product)){{$product->name}}@elseif(old('name')){{old('name')}}@endif" placeholder="Big Table"> 
+                            {!! $errors->first('name', '<small class="help-block">:message</small>') !!}
+                        </div>
+                        <div class="form-group {{ $errors->has('price') ? 'has-error' : '' }}">
+                            <label for="name">@lang('Price')</label>
+                            <input type="text" class="form-control" id="price" name="price" value="@if(isset($product)){{$product->price}}@elseif(old('price')){{old('price')}}@endif" placeholder="177.77"> 
+                            {!! $errors->first('price', '<small class="help-block">:message</small>') !!}
+                        </div>
+                        <div class="form-group">
+                            <label for="name">@lang('Top9')</label>
+                            <input type="checkbox" id="top9" name="top9" style="vertical-align: top;"> 
+                        </div>                        
+                    </div>
+                    <!-- /.box-body -->
+                    <div class="box-footer">
+                        <button type="submit" class="btn btn-primary">@lang('Submit')</button>
+                    </div>
+                </form>
+            </div>
+            <!-- /.box -->
+        </div>
+        <!--/.col (right) -->
+        <!-- right column -->
+       <div class="col-md-3">
+       </div> 
+    </div>
+    <!-- /.row -->
+@endsection
+
+@section('js')
+<script>
+$(document).ready(function(){
+  $("body").on("change", ".upload_field", function(){
+    //alert('hi');
+    $(".upload_submit").click();
+  });
+});       
+</script>
+@endsection  
+
+
+8.routes\web.php
+
+Route::prefix('')->namespace('Back')->group(function () {
+
+   Route::middleware('admin')->group(function () {
+      //Route::name('dashboard')->get('/dashboard', 'AdminController@index')->middleware('admin');
+      Route::name('dashboard')->get('/dashboard', 'AdminController@index');
+      Route::resource('products', 'AdminController');   
+      Route::name('upload')->post('/products/create', 'AdminController@upload'); //!!!upload          
+   });   
+
+});
+
+
+9.AdminController.php
+
+    /**
+     * Upload a new image for creating a new product in storage.
+     *
+     * @param  ...
+     * @return \Illuminate\Http\Response
+     */
+    public function upload(Request $request)
+    {
+        $file = $request->image;         
+        $filecontent = $file->openFile()->fread($file->getSize());  
+        $filename = date('YmdHis') . $file->getClientOriginalName();  
+        $file->move(public_path() . '/img/bg-img/', $filename);      //!!!/img/bg-img/ - custom
+        return view('back.products.create', ['image' => $filename]);
+    }    
+
+
+!!!+777 права на каталог /img/bg-img/ - custom 
+
+
+10.public\AdminLTE\css\main_v2.1.9.css
+
+.upload_field {
+opacity:0.0;
+z-index:2;
+position:absolute;
+}
+
+.upload_submit {
+z-index:1;
+display:none;
+}
+
+

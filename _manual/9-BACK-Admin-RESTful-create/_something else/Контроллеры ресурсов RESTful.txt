@@ -1,0 +1,101 @@
+Контроллер ресурсов RESTful
+Verb    Path                        Action  Route Name
+GET     /users                      index   users.index
+GET     /users/create               create  users.create
+POST    /users                      store   users.store
+GET     /users/{user}               show    users.show
+GET     /users/{user}/edit          edit    users.edit
+PUT     /users/{user}               update  users.update
+PUT     /comments/{comment}         update  comments.update
+DELETE  /users/{user}               destroy users.destroy
+
+Route Name — роут во вью
+Action — имя метода в котроллере
+Verb - метод передачи
+
+Route::resource('users', 'UserController');
+
+--- CREATE - GET
+<a href="{{ route('users.create') }}">...</a>
+
+    /**
+     * Create a new view for creating a new ... in storage.
+     *
+     * @param  ...
+     * @return \Illuminate\Http\Response
+     */
+    public function create()
+    {
+        return view('user.create'); //for resources\views\user\create.blade.php
+    }
+
+--- STORE - POST
+
+    <form method="post" action="{{ route('users.store') }}">
+                    {{ csrf_field() }}
+                {{ method_field('POST') }}  
+
+    /**
+     * Store a newly created ... in storage.
+     *
+     * @param  \App\Http\Requests\Request $request
+     * @return \Illuminate\Http\Response
+     */
+    public function store(Request $request) 
+    {
+       //for example - method store($request) from repository
+       // + return redirect(route('users.create'))->with(...
+    }    
+
+--- EDIT - GET
+<a href="{{ route('users.edit', [$user->id]) }}">...</a>
+
+    /**
+     * Show the form for editing the specified resource.
+     *
+     * @param  \App\Models\User $user
+     * @return \Illuminate\Http\Response
+     */
+    public function edit(User $user) //!!!User $user - ОСНОВНОЕ ПРЕИМУЩЕСТВО КОНТРОЛЛЕРОВ RESTful
+    {
+       return view('user.edit', compact('user')); //or ..., ['user' => $user]
+    }
+
+--- UPDATE - PUT
+
+    <form method="post" action="{{ route('users.update', [$user->id]) }}">
+                     {{ csrf_field() }}
+                 {{ method_field('PUT') }}   
+
+    /**
+     * Update the specified resource in storage.
+     *
+     * @param  \App\Http\Requests\Request $request
+     * @param  \App\Models\User $user
+     * @return \Illuminate\Http\Response
+     */
+    public function update(Request $request, User $user) //!!!User $user - ОСНОВНОЕ ПРЕИМУЩЕСТВО КОНТРОЛЛЕРОВ RESTful
+    {
+       //for example - method update($request, $user) from repository
+       // + return redirect(route('dashboard'))->with(...
+     } 
+
+
+--- DESTROY - DELETE
+
+    <form method="post" action="{{ route('users.destroy', [$user->id]) }}">
+                     {{ csrf_field() }}
+                 {{ method_field('DELETE') }}  
+
+    /**
+     * Remove the ... from storage.
+     *
+     * @param  \App\Models\User $user
+     * @return \Illuminate\Http\Response
+     */
+    public function destroy(User $user) //!!!User $user - ОСНОВНОЕ ПРЕИМУЩЕСТВО КОНТРОЛЛЕРОВ RESTful
+    {
+       //for example - $user->delete();
+       // + return redirect(route('dashboard'))->with(...
+    }       
+

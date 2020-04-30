@@ -1,0 +1,99 @@
+10.BACK-RESTful-create-store (STORE)
+
+--- 
+POST-store(insert)
+
+Verb    Path                        Action  Route Name
+POST    /cards                      store   cards.store
+
+Verb - метод передачи
+Route Name — роут во вью
+Action — имя метода в котроллере
+
+1.AdminController.php
+
+    /**
+     * Store a newly created product in storage.
+     *
+     * @param  \App\Http\Requests\ProductRequest $request
+     * @return \Illuminate\Http\Response
+     */      
+    public function store(Request $request, AdminRepository $repository)
+    {
+       $repository->store($request);
+
+       return redirect(route('products.create'))->with('product-ok', 'New product has been successfully created...');
+    }  
+
+
+2.AdminRepository.php
+
+    /**
+     * Store a newly created product in storage.
+     *
+     * @param  \App\Http\Requests\ProductRequest $request
+     * @return \Illuminate\Http\Response
+     */      
+    public function store($request)
+    {
+       Product::create($request->all());
+    }        
+
+
+3.Models\Product.php
+
+    /**
+     * Setter of storing 1 or 0 for top9 (from form - on or null).
+     *
+     * @var array
+     */    
+    public function setTop9Attribute($value)
+    {
+        return $this->attributes['top9'] = $value?1:0;
+    }   
+
+
+4.Валидация по полям name, price - Http\Requests\ProductRequest.php (copy from CartRequest.php)
+
+<?php
+
+namespace App\Http\Requests;
+
+class ProductRequest extends Request
+{
+    /**
+     * Get the validation rules that apply to the request.
+     *
+     * @return array
+     */
+    public function rules()
+    {
+        return $rules = [
+            'name' => 'bail|required|max:255',
+            'price' => 'bail|required|numeric',
+        ];
+    }
+}
+
+
+5.AdminController.php
+
+use App\ {
+    Http\Controllers\Controller,
+    Repositories\AdminRepository,
+    Http\Requests\ProductRequest //!!!
+
+};
+
+...
+
+    /**
+     * Store a newly created product in storage.
+     *
+     * @param  \App\Http\Requests\ProductRequest $request
+     * @return \Illuminate\Http\Response
+     */      
+    public function store(ProductRequest $request, AdminRepository $repository) //!!!ProductRequest $request
+    {
+    ...
+

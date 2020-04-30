@@ -1,0 +1,182 @@
+----9-BACK-RESTful-create-store (CREATE)
+
+Контроллер ресурсов RESTful
+Verb    Path                        Action  Route Name
+GET     /users                      index   users.index
+GET     /users/create               create  users.create
+POST    /users                      store   users.store
+GET     /users/{user}               show    users.show
+GET     /users/{user}/edit          edit    users.edit
+PUT     /users/{user}               update  users.update
+PUT     /comments/{comment}         update  comments.update
+DELETE  /users/{user}               destroy users.destroy
+Verb — метод выполнения
+Action — имя метода в котроллере
+Route Name — роут во вью
+
+routes\web.php
+
+Route::prefix('')->namespace('Back')->group(function () {
+
+   Route::middleware('admin')->group(function () {
+      Route::name('dashboard')->get('/dashboard', 'AdminController@index');
+      Route::resource('cards', 'AdminController');
+   });
+
+});
+
+--- 
+GET-create(view)
+
+Контроллер ресурсов RESTful
+Verb    Path                        Action  Route Name
+GET     /cards                      index   cards.index
+GET     /cards/create               create  cards.create
+POST    /cards                      store   cards.store
+GET     /cards/{card}               show    cards.show
+GET     /cards/{card}/edit          edit    cards.edit
+PUT     /cards/{card}               update  cards.update
+PUT     /comments/{comment}         update  comments.update
+DELETE  /cards/{card}               destroy cards.destroy
+
+resources\views\back\layout.blade.php
+
+                    <a href="{{ route('cards.create') }}">
+                        <i class="fa fa-folder-o"></i> <span>Add new Card</span>
+                    </a>
+
+app\Http\Controllers\AdminController.php
+
+    /**
+     * Create a new view for creating a new card in storage.
+     *
+     * @param  ...
+     * @return \Illuminate\Http\Response
+     */
+    public function create()
+    {
+        return view('back.cards.create');
+    }
+
++resources\views\back\
+cards\
+create.blade.php
+edit.blade.php
+template.blade.php 
+components\
+...
+
+--- ПОКА БЕЗ
+                                @foreach ($types as $key => $type)
+                                   <option value="{{ $type->id }}" 
+                                    @if(isset($card) && $card->card_id == $type->id)
+                                       {{ 'selected' }} 
+                                    @endif
+                                   >@lang( $type->name)</option>
+                                @endforeach     
+
+                                @foreach ($users as $user)
+                                   <option value="{{ $user->id }}"
+                                    @if(isset($card) && $card->user_id == $user->id)
+                                       {{ 'selected' }} 
+                                    @endif
+                                   >@lang( $user->name)</option>
+                                @endforeach                 
+---
+
+app\Http\ViewComposers
+
+UserComposer.php
+
+<?php
+
+namespace App\Http\ViewComposers;
+
+use Illuminate\View\View;
+use App\Models\User;
+
+class UserComposer
+{
+    /**
+     * Bind data to the view.
+     *
+     * @param  View  $view
+     * @return void
+     */
+    public function compose(View $view)
+    {
+        $view->with('users', User::select('id', 'name')->where('name', '<>', 'admin')->get());
+    }
+}
+
+CardComposer.php
+<?php
+namespace App\Http\ViewComposers;
+
+use Illuminate\View\View;
+use App\Models\Card;
+
+class CardComposer
+{
+    /**
+     * Bind data to the view.
+     *
+     * @param  View  $view
+     * @return void
+     */
+    public function compose(View $view)
+    {
+        $view->with('types', Card::select('id', 'name')->get());
+    }
+}
+
+app\Providers\AppServisProvider.php
+
+use App\Http\ViewComposers\CardComposer;
+use App\Http\ViewComposers\UserComposer;
+
+    public function boot()
+    {
+        view()->composer('front/index', TypeComposer::class);
+        view()->composer('back/cards/template', CardComposer::class);
+        view()->composer('back/cards/template', UserComposer::class);    
+resources\views\back\cards\template.blade.php 
+
+                    @yield('form-open')
+
+                            <input type="text" class="form-control" id="number" name="number" value="@if(isset($card)) {{ $card->number }} @elseif(old('number')) {{ old('number') }} @endif" placeholder="777 777 777 777" required> 
+                            {!! $errors->first('number', '<small class="help-block">:message</small>') !!}
+
+                            <select class="form-control" name="card_id" id="type_id">
+                                @foreach ($types as $key => $type)
+                                   <option value="{{ $type->id }}" 
+                                    @if(isset($card) && $card->card_id == $type->id)
+                                       {{ 'selected' }} 
+                                    @endif
+                                   >@lang( $type->name)</option>
+                                @endforeach                       
+                            </select>
+
+                            <select class="form-control" name="user_id" id="user_id">
+                                @foreach ($users as $user)
+                                   <option value="{{ $user->id }}"
+                                    @if(isset($card) && $card->user_id == $user->id)
+                                       {{ 'selected' }} 
+                                    @endif
+                                   >@lang( $user->name)</option>
+                                @endforeach                 
+                            </select>
+
+                        <button type="submit" class="btn btn-primary">@lang('Submit')</button>
+
+resources\views\back\cards\create.blade.php
+
+@extends('back.cards.template')
+
+@section('form-open')
+    <form method="post" action="{{ route('cards.store') }}">
+               {{ csrf_field() }}
+           {{ method_field('POST') }}   
+@endsection
+
+

@@ -1,0 +1,68 @@
+7.Admin-middleware, view-AdminLTE
+
+1.Http\Kernel.php
+
+    protected $routeMiddleware = [
+        ...
+        'admin' => \App\Http\Middleware\Admin::class,        
+    ];
+
+2.Http\Middleware\Admin.php - just copy from laravel-cards
+
+3.routes\web.php
+
+Route::prefix('')->namespace('Back')->group(function () {
+
+   Route::middleware('admin')->group(function () {
+      Route::name('dashboard')->get('/dashboard', 'AdminController@index');
+   });   
+
+});
+
+4.AdminLTE (!only for admin) - copy files from views\back\*.* + public\AdminLTE
+
++изменить layout.blade.php
+
+...
+
+    <header class="main-header">
+        <a href="" class="logo">
+            <span class="logo-mini"><b>P</b></span>
+            <span class="logo-lg">Products</span>
+        </a>
+
+...
+                <li class="header" style="font-size: 15px;">PRODUCTS</li>  
+                <li>
+                    <a href="{{ url('/dashboard') }}">
+                        <i class="fa fa-folder-o"></i> <span>List of Products</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#">
+                        <i class="fa fa-folder-o"></i> <span>Add new Product</span>
+                    </a>
+                </li>
+
++изменить index.blade.php
+
+                      @if (session('product-updated'))
+                          @component('back.components.alert')
+                              @slot('type')
+                                  success
+                              @endslot
+                              {!! session('product-updated') !!}
+                          @endcomponent
+                      @endif
+                      <table>
+                         <thead>
+                          <tr>
+                            <td class="widthbutton">&nbsp;</td>
+                            <td class="widthbutton">&nbsp;</td>
+                            <td>Image</td>
+                            <td>Name</td>                            
+                            <td>Price</td>
+                            <td>Top9</td>
+                          </tr>  
+                          </thead>
+                          

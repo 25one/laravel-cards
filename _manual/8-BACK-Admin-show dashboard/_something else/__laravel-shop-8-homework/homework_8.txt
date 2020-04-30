@@ -1,0 +1,106 @@
+8.Admin-show dashboard
+
+1.AdminRepository.php
+
+        $query = $this->model_product
+            ->select('id', 'name', 'price', 'image', 'top9'); //!!!top9
+
+
+2.Models\Product.php
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array
+     */
+
+    protected $fillable = [
+         'name', 'price', 'image', 'top9'
+    ];
+
+
+3.AdminController.php
+
+    /**
+     * Show the home-page.
+     *
+     * @return \Illuminate\Contracts\Support\Renderable
+     */
+    public function index(Request $request, AdminRepository $repository)
+    {
+        $products = $repository->funcSelect($request, $this->getParameters()); //!!!$this->getParameters()
+
+        return view('back.index', compact('products'));
+    }
+
+    /**
+     * Get parameters.
+     *
+     * @param  ...
+     * @return array
+     */
+    protected function getParameters()
+    {
+        // Default parameters            //!!!back
+        $parameters = config("parameters.back"); //$parameters['order'], $parameters['direction'] 
+
+        return $parameters; 
+    }        
+
++ config\parameters.php
+
+    'back' => [
+        'order' => 'price',
+        'direction' => 'desc',
+    ],
+
+!!!+ php artisan config:cache    
+
+
+4.AdminRepository.php
+
+    /**
+     * Create a query for Product.
+     *
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function funcSelect($request, $parameters) //!!!$parameters
+    {
+        $query = $this->model_product
+            ->select('id', 'name', 'price', 'image', 'top9')
+            ->orderBy($parameters['order'], $parameters['direction']); //!!!$parameters
+
+        return $query->get();
+    }    
+
+
+5.views\back\index.blade.php
+
+                          <tbody id="pannel" class="back-pannel">
+                             @include('back.brick-standard')
+                         </tbody>    
+
+
+6.brick-standard.blade.php
+
+@foreach($products as $product)
+<tr>
+@admin
+<td class="center widthbutton"><a class="btn btn-danger listbuttonremove" href="#"><i class="fa fa-trash-o" aria-hidden="true"></i></a></td>
+<td class="col-md-6 col-sm-6 col-xs-6 center widthbutton"><a class="btn btn-primary listbuttonupdate" href="#"><i class="fa fa-edit" aria-hidden="true"></i></a></td>
+@endadmin
+   <td><img src="{{ asset('public/img/' . $product->image) }}" alt /></td> 
+   <td>{{ $product->name }}</td>      
+   <td>{{ $product->price }}</td>   
+   <td>{{ $product->top9 }}</td>
+</tr>
+@endforeach
+
+
+7.public\AdminLTE\main_v2.1.9.css
+
+.back-pannel img {
+width: 120px;  
+}
+
+

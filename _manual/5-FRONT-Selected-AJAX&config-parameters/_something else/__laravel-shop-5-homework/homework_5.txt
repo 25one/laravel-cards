@@ -1,0 +1,79 @@
+5.Используя config\parameters применить на основной страница (home-index) order by price asc
+
+1.config\parameters.php (copy from laravel-cards)
+
+<?php
+
+return [
+
+    'front' => [
+        'order' => 'price', //!!!
+        'direction' => 'asc', //!!!
+    ],
+    'back' => [
+        'order' => 'user_id',
+        'direction' => 'asc',
+    ],
+
+];
+
+!!!+ php artisan config:cache
+
+
+2.Controllers\Front\ShopController.php
+
+    /**
+     * Show the home-page.
+     *
+     * @return \Illuminate\Contracts\Support\Renderable
+     */
+    public function index(Request $request, ShopRepository $repository)
+    {
+        //$products = $this->repository->funcSelect($request);
+        $products = $repository->funcSelect($request, $this->getParameters()); //!!!
+
+        // Ajax response
+        if ($request->ajax()) {
+            return response()->json([
+                'table' => view("front.brick-standard", ['products' => $products])->render(),
+            ]);
+        }         
+
+        //return view('shop.index', compact('products'));
+        return view('front.index', ['products' => $products]);
+    }
+
+    /**
+     * Get parameters.
+     *
+     * @param  ...
+     * @return array
+     */
+    protected function getParameters() //!!!
+    {
+        // Default parameters
+        $parameters = config("parameters.front"); //$parameters['order'], $parameters['direction'] 
+
+        return $parameters; 
+    }        
+
+
+3.ShopRepository.php
+
+    /**
+     * Create a query for Product.
+     *
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function funcSelect($request, $parameters) //!!!
+    {
+        $query = $this->model_product
+            ->select('id', 'name', 'price', 'image')
+            ->orderBy($parameters['order'], $parameters['direction']); //!!!
+
+        if($request->search) $query->where('name', 'like', '%' . $request->search . '%');
+
+        return $query->get();
+    }
+
+

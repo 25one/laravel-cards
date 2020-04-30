@@ -1,0 +1,187 @@
+----11-BACK-Admin-RESTful-edit-update
+
+...ЗАКОММЕНТИРУЕМ Getter && Setter в Models\Joined.php (БЫЛИ ДЛЯ ПРИМЕРА ДЛЯ ДЗ)
+
+--- 
+GET-edit(view) - !!!but with data selected card - !!!КОНТРОЛЛЕРЫ RESTful
+
+Контроллер ресурсов RESTful
+Verb    Path                        Action  Route Name
+GET     /cards                      index   cards.index
+GET     /cards/create               create  cards.create
+POST    /cards                      store   cards.store
+GET     /cards/{card}               show    cards.show 
+GET     /cards/{card}/edit          edit    cards.edit
+PUT     /cards/{card}               update  cards.update
+PUT     /comments/{comment}         update  comments.update
+DELETE  /cards/{card}               destroy cards.destroy
+
+resources\views\back\brick-standard.blade.php
+
+<td class="col-md-6 col-sm-6 col-xs-6 center widthbutton"><a class="btn btn-primary listbuttonupdate" href="{{ route('cards.edit', $joined->id) }}"><i class="fa fa-edit" aria-hidden="true"></i></a>
+
+app\Http\Controllers\AdminController.php
+
+use App\ {
+    Http\Controllers\Controller,
+    Repositories\AdminRepository,
+    Http\Requests\JoinedRequest,
+    Models\Joined
+};
+
+    /**
+     * Show the form for editing the specified resource.
+     *
+     * @param  \App\Models\Joined $card
+     * @return \Illuminate\Http\Response
+     */
+    public function edit(Joined $card)
+    {
+       return view('back.cards.edit', compact('card'));
+    }
+
+
+resources\views\back\cards\template.blade.php 
+
+                    @yield('form-open')
+                    <div class="box-body">
+                        <div class="form-group {{ $errors->has('number') ? 'has-error' : '' }}">
+                            <label for="name">@lang('Number Card')</label>
+                            <input type="text" class="form-control" id="number" name="number" value="@if(isset($card)){{$card->number}}@elseif(old('number')){{old('number')}}@endif" placeholder="7777 7777 7777 7777"> 
+                            {!! $errors->first('number', '<small class="help-block">:message</small>') !!}
+                        </div>
+                        <div class="form-group">
+                            <label for="type">@lang('Type Card')</label>
+                            <select class="form-control" name="card_id" id="card_id">
+                               @foreach($types as $type)
+                                  <option value="{{$type->id}}"
+                                     @if(old('card_id') && old('card_id') == $type->id) 
+                                        {{'selected'}}
+                                     @elseif(isset($card) && $card->card_id == $type->id){{'selected'}}@endif
+                                    >{{$type->name}}</option>
+                               @endforeach                
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="user">@lang('User')</label>
+                            <select class="form-control" name="user_id" id="user_id">
+                               @foreach($users as $user)
+                                  <option value="{{$user->id}}"
+                                     @if(old('user_id') && old('user_id') == $user->id) 
+                                        {{'selected'}}
+                                     @elseif(isset($card) && $card->user_id == $user->id){{'selected'}}@endif
+                                    >{{$user->name}}</option>
+                               @endforeach    
+                            </select>
+                        </div>
+                    </div>
+
+
+--- 
+PUT-update !!!but with data selected card - !!!КОНТРОЛЛЕРЫ RESTful
+
+Контроллер ресурсов RESTful
+Verb    Path                        Action  Route Name
+GET     /cards                      index   cards.index
+GET     /cards/create               create  cards.create
+POST    /cards                      store   cards.store
+GET     /cards/{card}               show    cards.show
+GET     /cards/{card}/edit          edit    cards.edit
+PUT     /cards/{card}               update  cards.update
+PUT     /comments/{comment}         update  comments.update
+DELETE  /cards/{card}               destroy cards.destroy
+
+resources\views\back\cards\edit.blade.php
+
+@extends('back.cards.template')
+
+@section('form-open')
+    <form method="post" action="{{ route('cards.update', [$card->id]) }}">
+                           {{ csrf_field() }}
+                        {{ method_field('PUT') }}   
+@endsection
+
+app\Http\Controllers\AdminController.php
+
+    /**
+     * Update the specified resource in storage.
+     *
+     * @param  \App\Http\Requests\JoinedRequest $request
+     * @param  \App\Models\Joined $card
+     * @return \Illuminate\Http\Response
+     */
+    public function update(JoinedRequest $request, Joined $card)
+    {
+        //$this->authorize('manage', $card);
+
+        $this->repository->update($request, $card);
+
+        return redirect(route('dashboard'))->with('card-updated', __('The card has been successfully updated'));
+     } 
+
+
+app\Repositories\AdminRepository.php
+
+    /**
+     * Update card.
+     *
+     * @param  \App\Models\Joined $card
+     * @return void
+     */
+    public function update($request, $card)
+    {
+        $card->update($request->all());
+    }
+
+app\Http\Controllers\AdminController.php → return redirect(route('dashboard'))->with('card-updated', __('The card has been successfully updated'));
+
+resources\views\back\index.blade.php
+
+                      @if (session('card-updated'))
+                          @component('back.components.alert')
+                              @slot('type')
+                                  success
+                              @endslot
+                              {!! session('card-updated') !!}
+                          @endcomponent
+                      @endif
+
+----------------------------------------------------------------------------------------------
+
+...OR (НЕ МАССОВОЕ ПРИСВАИВАНИЕ, КОГДА НУЖНО)
+    public function update($request, $card)
+    {
+        //$card->update($request->all());
+        $card->user_id = $request->user_id;
+        $card->card_id = $request->card_id;
+        $card->number = $request->number;
+        $card->save();
+    }      
+
+...OR (НЕ RESTful — ЯВНЫЙ МАРШРУТ С ПАРАМЕТРОМ (ИЛИ БЕЗ ПАРАМЕТРА))
+
+resources\views\back\cards\edit.blade.php
+
+@extends('back.cards.template')
+
+@section('form-open')
+    <form method="post" action="{{ route('update', [$card->id]) }}">
+                     {{ csrf_field() }}
+                  {{ method_field('PUT') }}   
+@endsection
+
+routes/web.php
+
+Route::prefix('')->namespace('Back')->group(function () {
+
+   //Route::middleware('admin')->group(function () {
+   Route::middleware('auth')->group(function () {
+      Route::name('dashboard')->get('/dashboard', 'AdminController@index');
+      //Route::name('dashboard')->get('/dashboard', 'AdminController@index')->middleware('admin');
+      Route::resource('cards', 'AdminController');
+      Route::name('update')->put('update/{card}', 'AdminController@update');      
+   });
+
+});
+
+

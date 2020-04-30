@@ -1,0 +1,157 @@
+----5-FRONT-Selected-AJAX&config-parameters
+
+Select-type of Card (js-ajax)
+
+resources\views\front\index.blade.php
+            <select class="form-control input-size" style="height: auto;" name="type_id" id="type_id">
+                <option value="0" class="input-size" 
+                   >-----</option> 
+
+@section('js')
+    <script src="{{ asset('public/js/mine.js') }}"></script>
+    <script>
+       $(document).ready(function(){
+          $('#type_id').change(function(){
+             BaseRecord.typeSelect($(this).val());
+          });  
+       });
+    </script>
+@endsection    
+---
+layout.blade.php
+(…
+@yield('js')
+
+</body>
+</html>)
+
+public\js\mine.js
+
+typeSelect: function(type_id){
+   var ajaxSetting={
+      method: 'get',
+      url: '/', //Route::name('home')->get('/', 'Front\CardController@index');
+      data: {
+         type: type_id, //if($request->type)... in CardRepository.php
+      },
+      success: function(data){
+         $('#pannel').html(data.table); //<div id="pannel"> in front\index.blade.php
+      },
+   };
+   $.ajax(ajaxSetting);
+},
+
+
+app\Http\Controllers\CardController.php
+
+use Indexable;
+
+...
+
+
+app\Http\Controllers\Traits\Indexable.php
+
+    public function index(Request $request)
+    {
+        //CardController, ...
+        $cards = $this->repository->getData($request);
+
+        if ($request->ajax()) {
+            return response()->json([
+                'table' => view($this->namespace . ".brick-standard", ['cards' => $cards])->render(),
+            ]);
+        }   
+
+        return view($this->namespace . '.index', compact('cards'));
+    }
+
+-----------------------------------------
+
+config-parameters → Traits
+
+config\parametrs.php
+
+<?php
+
+return [
+
+    'front' => [
+        'order' => 'type_id',
+        'direction' => 'asc',
+    ],
+    'back' => [
+        'order' => 'user_id',
+        'direction' => 'asc',
+    ],
+
+];
+
+!!!php artisan config:cache – ПРИ КАЖДОЙ СМЕНЕ
+
+app\Http\Controllers\Traits\Indexable.php
+
+trait Indexable
+{
+    /**
+     * The Repository instance.
+     *
+     * @var \App\Repositories\CardRepository
+     * @var ...     
+     */
+    protected $repository; //...
+
+    /**
+     * The namespace
+     *
+     * @var string
+     */
+    protected $namespace; //...
+
+    /**
+     * Display a listing of the records.
+     *
+     * @param  \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\Response
+     */
+    public function index(Request $request)
+    {
+        //CardController, ...
+        $cards = $this->repository->getData($request, $this->getParameters());
+
+        if ($request->ajax()) {
+            return response()->json([
+                'table' => view($this->namespace . ".brick-standard", ['cards' => $cards])->render(),
+            ]);
+        }   
+
+        return view($this->namespace . '.index', compact('cards'));
+    }
+
+    /**
+     * Get parameters.
+     *
+     * @param  ...
+     * @return array
+     */
+    protected function getParameters()
+    {
+        // Default parameters
+        $parameters = config("parameters.".$this->namespace); //$parameters['order'], $parameters['direction'] 
+
+        return $parameters; 
+    }    
+
+app\Repositories\CardRepository.php
+
+    public function getData($request, $parameters)
+    {
+        $query = $this->model_card
+            ->select('id', 'type_id', 'name', 'title')
+            //->orderBy('type_id', 'desc');
+            ->orderBy($parameters['order'], $parameters['direction']);
+
+            if($request->type) $query->where('type_id', $request->type); //where('type_id', '=', $request->type) 
+        
+        return $query;      
+    }
+

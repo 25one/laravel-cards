@@ -1,0 +1,156 @@
+----12-BACK-Admin-RESTful-destroy(ajax)
+
+Контроллер ресурсов RESTful
+Verb    Path                        Action  Route Name
+GET     /cards                      index   cards.index
+GET     /cards/create               create  cards.create
+POST    /cards                      store   cards.store
+GET     /cards/{card}               show    cards.show 
+GET     /cards/{card}/edit          edit    cards.edit
+PUT     /cards/{card}               update  cards.update
+PUT     /comments/{comment}         update  comments.update
+DELETE  /cards/{card}               destroy cards.destroy
+
+Destroy
+Verb    Path                        Action  Route Name
+DELETE  /cards/{card}               destroy cards.destroy
+
+Verb - метод передачи
+Route Name — роут во вью
+Action — имя метода в котроллере
+
+resources\views\back\brick-standard.blade.php
+
+<td class="center widthbutton"><a class="btn btn-danger listbuttonremove" id="{{$joined->id}}" href="#"><i class="fa fa-trash-o" aria-hidden="true"></i></a></td>
+
+resources\views\back\index.blade.php
+
+@section('js')
+    <script src="{{ asset('public/js/mine.js') }}"></script>
+    <script>
+       $(document).ready(function(){
+          $('.listbuttonremove').click(function(){
+             BaseRecord.destroy($(this).attr('id'));
+             return false;
+          });
+       });
+    </script>
+@endsection    
+
+
+public\js\mine.js
+
+destroy: function(id){
+   var ajaxSetting={
+      method: 'delete',
+      url: './cards/'+id,
+      //data: {
+      //   type: type_id, 
+      //},
+      success: function(data) {
+         alert(data); //ПОКА БЕЗ ajax-ОБНОВЛЕНИЯ СТРАНИЦЫ
+      },
+   };
+   $.ajax(ajaxSetting);
+},
+
+app\Http\Controllers\AdminController.php
+
+    /**
+     * Remove the card from storage.
+     *
+     * @param  \App\Models\Joined $card
+     * @return \Illuminate\Http\Response
+     */
+    public function destroy(Joined $card)
+    {
+        //$this->authorize('manage', $card);
+
+        $card->delete();
+
+        return response()->json();
+    }            
+
+---
+...ДЛЯ ОБНОВЛЕНИЯ ПОСЛЕ УДАЛЕНИЯ   
+
+--- 1-Й ВАРИАНТ - "ДВОЙНОЙ ajax"
+
+public\js\mine.js
+
+destroy: function(id){
+   var ajaxSetting={
+       method: 'delete',
+       url: './cards/'+id,
+       //data:
+       success: function(data){
+          //alert(data);
+          BaseRecord.dashboard();
+       },
+       error: function(data){
+          alert(data.responseText);
+       },
+   };
+   $.ajax(ajaxSetting);
+},
+
+dashboard: function(){
+   var ajaxSetting={
+       method: 'get',
+       url: './dashboard',
+       //data:
+       success: function(data){
+          //alert(data);
+          $('#pannel').html(data.table);
+          $('.listbuttonremove').click(function(){
+             BaseRecord.destroy($(this).attr('id'));
+             return false;
+          });          
+       },
+       error: function(data){
+          alert(data.responseText);
+       },
+   };
+   $.ajax(ajaxSetting);
+},
+
+--- 2-Й ВАРИАНТ - "BACK-ОБНОВЛЕНИЕ СТРАНИЦЫ"
+
+public\js\mine.js
+
+destroy: function(id){
+   var ajaxSetting={
+       method: 'delete',
+       url: './cards/'+id,
+       //data:
+       success: function(data){
+          //alert(data);
+          //BaseRecord.dashboard();
+          $('#pannel').html(data.table);
+          $('.listbuttonremove').click(function(){
+             BaseRecord.destroy($(this).attr('id'));
+             return false;
+          });                
+       },
+       error: function(data){
+          alert(data.responseText);
+       },
+   };
+   $.ajax(ajaxSetting);
+},
+
+AdminControlelr.php
+
+    /**
+     * Delete selected card.
+     *
+     * @return void
+     */
+    public function destroy(Request $request, Joined $card) //!!!RESTful ->find($id)
+    {
+       //$this->repository->destroy($card); 
+       $card->delete();
+
+       return $this->index($request);
+    }         
+

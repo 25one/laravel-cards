@@ -1,0 +1,42 @@
+4.Отобразить(пока временно) во вью cart name user, чьи товары находятся в корзине (пока - все admin).
+
+1.views\front\cart.blade.php
+
+                                <thead>
+                                    <tr>
+                                        <th></th>
+                                        <th>Name</th>
+                                        <th>Price</th>
+                                        <th class="center">Remove one</th>
+                                        <th>User</th> <!-- !!! -->                                       
+                                    </tr>
+                                </thead>
+
+2.ShopRepository
+
+    /**
+     * Create a query for Cart.
+     *
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function fromcart()
+    {
+        $query = $this->model_cart
+            ->select('id', 'user_id', 'name', 'price', 'image'); //!!!user_id
+            //->where('price', '>', 200)
+            //->orderBy('price', 'asc');
+
+        //if($request->search) $query->where('name', 'like', '%' . $request->search . '%');
+
+        return $query->get();
+    }     
+
+3.views\front\brick-standard-cart.blade.php
+
+                                    ...
+                                        <td>
+                                            <span>{{$cart->user->name}}</span>
+                                        </td>                                             
+                                    </tr>
+                                    @endforeach
+
